@@ -1076,11 +1076,12 @@
         @media (max-width: 768px) {
             body {
                 padding: 5px;
+                overflow-x: hidden;
             }
             
             body::after {
-                font-size: 15vw; /* Smaller emoji on mobile */
-                color: rgba(0, 0, 0, 0.05); /* Even more subtle */
+                font-size: 15vw;
+                color: rgba(0, 0, 0, 0.05);
             }
             
             .container {
@@ -1088,6 +1089,7 @@
                 margin: 5px;
                 max-width: calc(100vw - 20px);
                 border-radius: 15px;
+                overflow-x: hidden;
             }
             
             h1 {
@@ -1098,33 +1100,43 @@
             .upload-section {
                 padding: 15px;
                 margin-bottom: 20px;
+                position: relative;
+                overflow: hidden;
+            }
+            
+            .upload-section.drag-over {
+                transform: none; /* Prevent scaling on mobile */
             }
             
             button, input[type="file"]::file-selector-button {
                 padding: 12px 20px;
                 font-size: 0.9em;
+                width: 100%;
+                box-sizing: border-box;
             }
             
-            #imagePreview {
-                max-height: 250px;
+            .custom-file-upload {
+                width: 100%;
+                text-align: center;
+                box-sizing: border-box;
             }
             
-            #aiComment {
-                font-size: 0.95em;
-                padding: 15px;
-                line-height: 1.5;
+            #fileName {
+                word-break: break-word;
+                text-align: center;
             }
             
             .top-controls {
-                /* flex-direction: column; */ /* Keep them in a row */
-                gap: 8px; /* Adjust gap for smaller screens */
-                right: 10px; /* Adjust position for smaller screens */
+                gap: 8px;
+                right: 10px;
                 top: 10px;
+                flex-wrap: wrap;
             }
 
             .control-btn {
-                padding: 6px 10px; /* Adjust padding for smaller buttons */
-                font-size: 0.8em; /* Adjust font size for smaller buttons */
+                padding: 6px 10px;
+                font-size: 0.8em;
+                white-space: nowrap;
             }
             
             .share-buttons, .warning-buttons {
@@ -1134,6 +1146,13 @@
             
             .share-btn, .compress-btn, .continue-btn, .cancel-btn {
                 width: 100%;
+                margin: 2px 0;
+            }
+            
+            /* Prevent horizontal scrolling */
+            * {
+                max-width: 100%;
+                box-sizing: border-box;
             }
         }
 
@@ -1554,26 +1573,65 @@
             }
         });
 
-        // Typewriter effect function
+        // Enhanced Typewriter effect function with HTML formatting support
         function typewriterEffect(element, text) {
-            element.textContent = '';
+            element.innerHTML = '';
             element.classList.remove('typewriter');
+            
+            // Process text to handle markdown-like formatting
+            const processedText = formatAIResponse(text);
+            
             let i = 0;
-            const speed = 50; // milliseconds per character
+            const speed = 30; // milliseconds per character
+            let currentHTML = '';
             
             function typeChar() {
-                if (i < text.length) {
-                    element.textContent += text.charAt(i);
+                if (i < processedText.length) {
+                    currentHTML += processedText.charAt(i);
+                    element.innerHTML = currentHTML;
                     i++;
                     setTimeout(typeChar, speed);
                 } else {
                     // Add blinking cursor effect after typing is complete
                     element.style.borderRight = '2px solid #e91e63';
                     element.style.animation = 'blink-caret 0.75s step-end infinite';
+                    
+                    // Remove cursor after 3 seconds
+                    setTimeout(() => {
+                        element.style.borderRight = 'none';
+                        element.style.animation = 'none';
+                    }, 3000);
                 }
             }
             
             typeChar();
+        }
+        
+        // Format AI response to support bold, italic, and other formatting
+        function formatAIResponse(text) {
+            if (!text) return '';
+            
+            // Convert markdown-like formatting to HTML
+            let formatted = text
+                // Bold text: **text** or __text__
+                .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                .replace(/__(.*?)__/g, '<strong>$1</strong>')
+                // Italic text: *text* or _text_
+                .replace(/\*(.*?)\*/g, '<em>$1</em>')
+                .replace(/_(.*?)_/g, '<em>$1</em>')
+                // Line breaks
+                .replace(/\n/g, '<br>')
+                // Bullet points
+                .replace(/^[•·\-\*]\s+(.+)$/gm, '<li>$1</li>')
+                // Numbers list
+                .replace(/^\d+\.\s+(.+)$/gm, '<li>$1</li>');
+            
+            // Wrap consecutive <li> elements in <ul>
+            formatted = formatted.replace(/(<li>.*?<\/li>)(?:\s*<li>.*?<\/li>)*/g, function(match) {
+                return '<ul>' + match + '</ul>';
+            });
+            
+            return formatted;
         }
 
         // Rating system functionality
@@ -2252,41 +2310,81 @@
                 
                 // Display uploaded image preview
                 let imageDataUrl = '';
+                
+                // Ensure image preview container is visible
+                imagePreviewDiv.style.display = 'block';
+                
+                // Clear previous image preview
+                imagePreviewDiv.innerHTML = '';
+                
                 if (result.uploadedImageUrl) {
                     const uploadedImg = document.createElement('img');
-                    uploadedImg.src = result.uploadedImageUrl; // Use the path from server
+                    uploadedImg.src = result.uploadedImageUrl;
                     uploadedImg.alt = 'Uploaded Image';
+                    uploadedImg.style.maxWidth = '100%';
+                    uploadedImg.style.maxHeight = '400px';
+                    uploadedImg.style.borderRadius = '10px';
                     uploadedImg.style.opacity = '0';
                     uploadedImg.style.transform = 'scale(0.8) translateY(20px)';
+                    uploadedImg.style.transition = 'all 0.6s ease-out';
+                    uploadedImg.style.display = 'block';
+                    uploadedImg.style.margin = '0 auto';
+                    
+                    uploadedImg.onload = function() {
+                        console.log('Server image loaded successfully');
+                        // Trigger animation after image is loaded
+                        setTimeout(() => {
+                            uploadedImg.style.opacity = '1';
+                            uploadedImg.style.transform = 'scale(1) translateY(0)';
+                        }, 100);
+                    };
+                    
+                    uploadedImg.onerror = function() {
+                        console.log('Failed to load server image, using local preview');
+                        displayLocalImagePreview(imageFile, comment);
+                    };
+                    
                     imagePreviewDiv.appendChild(uploadedImg);
                     imageDataUrl = result.uploadedImageUrl;
-                    
-                    // Trigger animation after image is added to DOM
-                    setTimeout(() => {
-                        uploadedImg.style.animation = 'imagePreviewFadeIn 0.6s ease-out forwards';
-                    }, 10);
-                } else if (imageFile) { // Fallback to local preview if server path not provided
+                } else if (imageFile) {
+                    displayLocalImagePreview(imageFile, comment);
+                }
+                
+                function displayLocalImagePreview(file, comment) {
                     const reader = new FileReader();
                     reader.onload = function(e) {
+                        imagePreviewDiv.innerHTML = ''; // Clear any existing content
+                        imagePreviewDiv.style.display = 'block'; // Ensure container is visible
+                        
                         const uploadedImg = document.createElement('img');
                         uploadedImg.src = e.target.result;
                         uploadedImg.alt = 'Uploaded Image';
+                        uploadedImg.style.maxWidth = '100%';
+                        uploadedImg.style.maxHeight = '400px';
+                        uploadedImg.style.borderRadius = '10px';
                         uploadedImg.style.opacity = '0';
                         uploadedImg.style.transform = 'scale(0.8) translateY(20px)';
+                        uploadedImg.style.transition = 'all 0.6s ease-out';
+                        uploadedImg.style.display = 'block';
+                        uploadedImg.style.margin = '0 auto';
+                        
                         imagePreviewDiv.appendChild(uploadedImg);
                         imageDataUrl = e.target.result;
                         
+                        console.log('Local image preview loaded');
+                        
                         // Trigger animation after image is added to DOM
                         setTimeout(() => {
-                            uploadedImg.style.animation = 'imagePreviewFadeIn 0.6s ease-out forwards';
-                        }, 10);
+                            uploadedImg.style.opacity = '1';
+                            uploadedImg.style.transform = 'scale(1) translateY(0)';
+                        }, 100);
                         
                         // Add to history after image is loaded
                         if (historyManager) {
                             historyManager.addItem(imageDataUrl, comment, 0);
                         }
-                    }
-                    reader.readAsDataURL(imageFile);
+                    };
+                    reader.readAsDataURL(file);
                 }
 
                 // Use filtered image for history if available
@@ -2581,38 +2679,41 @@
     #aiResponseContainer {
         margin-top: 30px;
         width: 100%;
-        text-align: left; /* Align headers to left for better structure */
+        text-align: left;
+        display: block;
     }
 
     #aiResponseContainer h2 {
-        color: #e83e8c; /* Match title color */
+        color: #e83e8c;
         font-size: 1.5em;
-        margin-bottom: 10px;
-        text-align: center; /* Center subheadings */
+        margin-bottom: 15px;
+        text-align: center;
     }
 
-    .image-preview-container {
+    .image-preview-container, #imagePreview {
         margin-top: 15px;
-        margin-bottom: 25px; /* Add some space below image previews */
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        min-height: 100px; /* Ensure space even if image fails to load */
-        background-color: #fff9fb; /* Very light pink background for preview areas */
-        border-radius: 10px;
-        padding: 10px;
-        border: 1px dashed #ffdae5; /* Light pink dashed border */
+        margin-bottom: 25px;
+        display: block;
+        text-align: center;
+        min-height: 150px;
+        background-color: #fff9fb;
+        border-radius: 12px;
+        padding: 15px;
+        border: 2px dashed #ffdae5;
+        width: 100%;
+        box-sizing: border-box;
+        overflow: hidden;
     }
 
     #imagePreview img {
         max-width: 100%;
-        max-height: 300px;
-        border-radius: 10px; /* Consistent rounded corners */
-        /* border: 3px solid #ffc1d6; // Removed as container has border now */
-        box-shadow: 0 4px 10px rgba(0,0,0,0.08);
-        opacity: 0;
-        transform: scale(0.8);
-        animation: imagePreviewFadeIn 0.6s ease-out forwards;
+        max-height: 400px;
+        width: auto;
+        height: auto;
+        border-radius: 10px;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        object-fit: contain;
+        display: block;
     }
 
     @keyframes imagePreviewFadeIn {
@@ -2627,7 +2728,82 @@
     }
 
     #aiResponse {
-        font-size: 1em;
-        padding: 15px;
+        background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+        border: 2px solid #e91e63;
+        border-radius: 15px;
+        padding: 20px;
+        margin-top: 20px;
+        font-size: 1.1em;
+        line-height: 1.6;
+        color: #333;
+        min-height: 80px;
+        box-shadow: 0 4px 15px rgba(233, 30, 99, 0.1);
+        word-wrap: break-word;
+        overflow-wrap: break-word;
+    }
+
+    #aiResponse strong {
+        color: #e91e63;
+        font-weight: 700;
+    }
+
+    #aiResponse em {
+        color: #6c757d;
+        font-style: italic;
+    }
+
+    #aiResponse ul {
+        margin: 10px 0;
+        padding-left: 20px;
+    }
+
+    #aiResponse li {
+        margin: 5px 0;
+        color: #495057;
+    }
+
+    /* Mobile responsive fixes */
+    @media (max-width: 768px) {
+        .image-preview-container, #imagePreview {
+            margin-top: 10px;
+            margin-bottom: 20px;
+            min-height: 120px;
+            padding: 10px;
+        }
+        
+        #imagePreview img {
+            max-height: 250px;
+        }
+        
+        #aiResponse {
+            font-size: 1em;
+            padding: 15px;
+            line-height: 1.5;
+        }
+        
+        #aiResponseContainer h2 {
+            font-size: 1.3em;
+            margin-bottom: 10px;
+        }
+    }
+
+    @media (max-width: 480px) {
+        .image-preview-container, #imagePreview {
+            min-height: 100px;
+            padding: 8px;
+        }
+        
+        #imagePreview img {
+            max-height: 200px;
+        }
+        
+        #aiResponse {
+            font-size: 0.95em;
+            padding: 12px;
+        }
+        
+        #aiResponseContainer h2 {
+            font-size: 1.2em;
+        }
     }
 </style>
