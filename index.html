@@ -1,0 +1,2633 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI 面相分析器</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700&family=Poppins:wght@300;400;600&display=swap');
+
+        :root {
+            /* Default theme colors */
+            --primary-color: #e91e63;
+            --secondary-color: #ff9a9e;
+            --accent-color: #84fab0;
+            --background-gradient: linear-gradient(-45deg, #ee7752, #e73c7e, #23a6d5, #23d5ab);
+            --text-color: #444;
+            
+            /* Dynamic color theme variables */
+            --dynamic-primary: var(--primary-color);
+            --dynamic-secondary: var(--secondary-color);
+            --dynamic-accent: var(--accent-color);
+            --dynamic-gradient: var(--background-gradient);
+            
+            /* Theme transition */
+            --theme-transition: all 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        
+        /* Dynamic theme classes */
+        .theme-warm {
+            --dynamic-primary: #ff6b6b;
+            --dynamic-secondary: #ffa726;
+            --dynamic-accent: #ffcc02;
+            --dynamic-gradient: linear-gradient(-45deg, #ff9a9e, #fecfef, #ffa726, #ffcc02);
+        }
+        
+        .theme-cool {
+            --dynamic-primary: #4fc3f7;
+            --dynamic-secondary: #29b6f6;
+            --dynamic-accent: #26c6da;
+            --dynamic-gradient: linear-gradient(-45deg, #667eea, #764ba2, #4fc3f7, #26c6da);
+        }
+        
+        .theme-nature {
+            --dynamic-primary: #66bb6a;
+            --dynamic-secondary: #81c784;
+            --dynamic-accent: #a5d6a7;
+            --dynamic-gradient: linear-gradient(-45deg, #84fab0, #8fd3f4, #66bb6a, #a5d6a7);
+        }
+        
+        .theme-sunset {
+            --dynamic-primary: #ff7043;
+            --dynamic-secondary: #ffab40;
+            --dynamic-accent: #ffc947;
+            --dynamic-gradient: linear-gradient(-45deg, #ff9a9e, #fad0c4, #ff7043, #ffc947);
+        }
+        
+        .theme-ocean {
+            --dynamic-primary: #42a5f5;
+            --dynamic-secondary: #29b6f6;
+            --dynamic-accent: #26c6da;
+            --dynamic-gradient: linear-gradient(-45deg, #667eea, #764ba2, #42a5f5, #26c6da);
+        }
+
+        body {
+            font-family: 'Poppins', 'Noto Sans TC', sans-serif;
+            background: var(--dynamic-gradient);
+            background-size: 400% 400%;
+            animation: gradientBG 15s ease infinite;
+            /* background-image: url('https://www.transparenttextures.com/patterns/asfalt-light.png'); */ /* Example subtle pattern */
+            display: flex;
+            position: relative; /* Needed for pseudo-element positioning */
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 10px;
+            box-sizing: border-box;
+            color: var(--text-color); /* Slightly softer text color */
+            transition: var(--theme-transition);
+            overflow-x: hidden; /* Prevent horizontal scroll from decorations */
+        }
+
+        .container {
+            background-color: rgba(255, 255, 255, 0.95); /* Slightly more opaque for readability */
+            padding: 35px 40px;
+            border-radius: 25px; /* More rounded corners */
+            box-shadow: 0 10px 30px rgba(255, 105, 180, 0.2); /* Pinkish shadow for cuteness */
+            width: 100%;
+            max-width: 550px; /* Slightly narrower for a cozier feel */
+            text-align: center;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            position: relative; /* For pseudo-elements */
+            overflow: hidden; /* Keep decorations contained if they go outside bounds */
+            box-sizing: border-box; /* Ensure padding is included in width calculation */
+        }
+
+        /* Simple decorative dots/sparkles using pseudo-elements */
+        .container::before, .container::after {
+            content: '';
+            position: absolute;
+            width: 100px;
+            height: 100px;
+            background: radial-gradient(circle, rgba(255, 182, 193, 0.3) 20%, transparent 70%);
+            border-radius: 50%;
+            opacity: 0.5;
+            pointer-events: none; /* So they don't interfere with clicks */
+            z-index: -1; /* Behind content */
+        }
+
+        .container::before {
+            top: -30px;
+            left: -30px;
+            animation: sparkle1 10s infinite linear;
+        }
+
+        .container::after {
+            bottom: -40px;
+            right: -40px;
+            width: 150px; /* Different size */
+            height: 150px;
+            animation: sparkle2 12s infinite linear reverse;
+        }
+
+        @keyframes sparkle1 {
+            0% { transform: scale(0.8) rotate(0deg); opacity: 0.3; }
+            50% { transform: scale(1.2) rotate(180deg); opacity: 0.6; }
+            100% { transform: scale(0.8) rotate(360deg); opacity: 0.3; }
+        }
+
+        @keyframes sparkle2 {
+            0% { transform: scale(1) rotate(0deg); opacity: 0.4; }
+            50% { transform: scale(0.7) rotate(-180deg); opacity: 0.7; }
+            100% { transform: scale(1) rotate(-360deg); opacity: 0.4; }
+        }
+
+        body::after {
+            content: '😒'; /* Rolling eyes emoji, a classic吐槽 face */
+            position: fixed; /* Fixed position so it stays in place during scroll */
+            font-size: 20vw; /* Reduced size for better mobile experience */
+            color: rgba(0, 0, 0, 0.08); /* Reduced opacity for mobile */
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) rotate(-15deg); /* Centered and slightly rotated */
+            z-index: -1; /* Ensure it's behind content but above solid background if any */
+            pointer-events: none; /* Make sure it doesn't interfere with clicks */
+            animation:吐槽emojiAnimation 5s ease-in-out infinite alternate; /* Added animation */
+        }
+
+        @keyframes 吐槽emojiAnimation {
+            0% {
+                transform: translate(-50%, -50%) rotate(-15deg) scale(1);
+                opacity: 0.7;
+            }
+            50% {
+                transform: translate(-45%, -55%) rotate(-10deg) scale(1.1);
+                opacity: 1;
+            }
+            100% {
+                transform: translate(-50%, -50%) rotate(-15deg) scale(1);
+                opacity: 0.7;
+            }
+        }
+
+        @keyframes gradientBG {
+            0% {
+                background-position: 0% 50%;
+            }
+            50% {
+                background-position: 100% 50%;
+            }
+            100% {
+                background-position: 0% 50%;
+            }
+        }
+
+        h1 {
+            color: #e83e8c; /* Hot pink for title */
+            margin-bottom: 25px;
+            font-weight: 600;
+            font-size: 2.2em;
+            animation: subtleTitleGlow 3s ease-in-out infinite alternate; /* Subtle glow animation */
+        }
+
+        @keyframes subtleTitleGlow {
+            0% {
+                text-shadow: 0 0 5px rgba(232, 62, 140, 0.3);
+            }
+            100% {
+                text-shadow: 0 0 15px rgba(232, 62, 140, 0.7);
+            }
+        }
+
+        h2 {
+            color: #555;
+            margin-top: 30px;
+            margin-bottom: 10px;
+            font-size: 1.3em;
+            text-align: left;
+        }
+
+        .upload-section {
+            margin-bottom: 30px;
+            padding: 25px;
+            border: 2px dashed #ffadc5; /* Lighter pink dashed border */
+            border-radius: 12px;
+            background-color: rgba(255, 240, 245, 0.7); /* Light pinkish transparent */
+            transition: all 0.3s ease;
+            position: relative;
+        }
+
+        .upload-section.drag-over {
+            border-color: #e91e63;
+            background-color: rgba(233, 30, 99, 0.1);
+            transform: scale(1.02);
+            box-shadow: 0 5px 15px rgba(233, 30, 99, 0.3);
+        }
+
+        .drag-drop-text {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 1.2em;
+            color: #e91e63;
+            font-weight: 600;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            pointer-events: none;
+            z-index: 10;
+        }
+
+        .upload-section.drag-over .drag-drop-text {
+            opacity: 1;
+        }
+
+        .upload-section.drag-over .custom-file-upload,
+        .upload-section.drag-over #fileName {
+            opacity: 0.3;
+        }
+
+        input[type="file"] {
+            display: none;
+        }
+
+        .custom-file-upload {
+            background: linear-gradient(45deg, var(--dynamic-secondary) 0%, var(--dynamic-accent) 99%, var(--dynamic-accent) 100%); /* Dynamic gradient */
+            color: white;
+            padding: 12px 22px;
+            border: none;
+            border-radius: 25px; /* More rounded */
+            cursor: pointer;
+            font-size: 1em;
+            font-weight: 600;
+            transition: var(--theme-transition);
+            display: inline-block;
+            box-shadow: 0 4px 10px rgba(255, 154, 158, 0.4);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .custom-file-upload:hover {
+            transform: translateY(-2px) scale(1.02);
+            box-shadow: 0 6px 15px rgba(255, 154, 158, 0.6);
+            background: linear-gradient(45deg, var(--dynamic-secondary) 0%, var(--dynamic-accent) 50%, var(--dynamic-accent) 100%);
+        }
+
+        .custom-file-upload:active {
+            transform: translateY(0px) scale(0.98);
+            box-shadow: 0 2px 5px rgba(255, 154, 158, 0.4);
+        }
+
+        .custom-file-upload::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+            transition: left 0.5s;
+        }
+
+        .custom-file-upload:hover::before {
+            left: 100%;
+        }
+
+        #fileName {
+            margin-top: 15px;
+            font-style: normal;
+            color: #e91e63;
+            font-weight: 600;
+        }
+
+        button#submitBtn {
+            background: linear-gradient(45deg, var(--dynamic-primary) 0%, var(--dynamic-secondary) 100%); /* Dynamic gradient */
+            color: white;
+            padding: 12px 30px;
+            border: none;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 1em;
+            font-weight: 600;
+            transition: var(--theme-transition);
+            margin-top: 15px;
+            box-shadow: 0 4px 10px rgba(132, 250, 176, 0.4);
+        }
+
+        button#submitBtn:hover {
+            transform: translateY(-2px) scale(1.05);
+            box-shadow: 0 6px 15px rgba(132, 250, 176, 0.6);
+            background: linear-gradient(45deg, #84fab0 0%, #8fd3f4 50%, #a8edea 100%);
+        }
+
+        button#submitBtn:active {
+            transform: translateY(0px) scale(0.95);
+            box-shadow: 0 2px 5px rgba(132, 250, 176, 0.4);
+        }
+
+        button#submitBtn::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 0;
+            height: 0;
+            background: rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+            transition: width 0.6s, height 0.6s;
+        }
+
+        button#submitBtn:hover::after {
+            width: 300px;
+            height: 300px;
+        }
+
+        button#submitBtn:disabled {
+            background: #dcdcdc;
+            box-shadow: none;
+            transform: none;
+            cursor: not-allowed;
+        }
+
+        /* Pulse animation for loading state */
+        .pulse-loading {
+            animation: pulseGlow 1.5s ease-in-out infinite;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .pulse-loading::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
+            animation: shimmer 2s infinite;
+        }
+
+        @keyframes pulseGlow {
+            0%, 100% {
+                box-shadow: 0 4px 10px rgba(132, 250, 176, 0.4), 0 0 0 0 rgba(132, 250, 176, 0.7);
+            }
+            50% {
+                box-shadow: 0 6px 15px rgba(132, 250, 176, 0.8), 0 0 0 10px rgba(132, 250, 176, 0);
+            }
+        }
+
+        @keyframes shimmer {
+            0% {
+                left: -100%;
+            }
+            100% {
+                left: 100%;
+            }
+        }
+
+        .result-section {
+            margin-top: 30px;
+            text-align: left;
+        }
+
+        /* Typewriter effect */
+        .typewriter {
+            overflow: hidden;
+            border-right: 2px solid #e91e63;
+            white-space: nowrap;
+            animation: typing 3s steps(40, end), blink-caret 0.75s step-end infinite;
+        }
+
+        @keyframes typing {
+            from { width: 0; }
+            to { width: 100%; }
+        }
+
+        @keyframes blink-caret {
+            from, to { border-color: transparent; }
+            50% { border-color: #e91e63; }
+        }
+
+        /* Rating System Styles */
+        .rating-section {
+            margin-top: 20px;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 15px;
+            text-align: center;
+            color: white;
+        }
+
+        .rating-section h3 {
+            margin-bottom: 15px;
+            font-size: 1.2em;
+        }
+
+        .rating-stars {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+
+        .star {
+            font-size: 2em;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            filter: grayscale(100%);
+        }
+
+        .star:hover,
+        .star.active {
+            filter: grayscale(0%);
+            transform: scale(1.2);
+            text-shadow: 0 0 10px rgba(255, 255, 255, 0.8);
+        }
+
+        .rating-text {
+            font-size: 0.9em;
+            opacity: 0.8;
+        }
+
+        /* Share Section Styles */
+        .share-section {
+            margin-top: 20px;
+            padding: 20px;
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            border-radius: 15px;
+            text-align: center;
+            color: white;
+        }
+
+        .share-section h3 {
+            margin-bottom: 15px;
+            font-size: 1.2em;
+        }
+
+        .share-buttons {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .share-btn {
+            padding: 10px 15px;
+            border: none;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 0.9em;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            color: white;
+        }
+
+        .share-btn.facebook {
+            background: #3b5998;
+        }
+
+        .share-btn.twitter {
+            background: #1da1f2;
+        }
+
+        .share-btn.line {
+            background: #00c300;
+        }
+
+        .share-btn.copy {
+            background: #6c757d;
+        }
+
+        .share-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+        }
+
+        /* Top Controls */
+        .top-controls {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            display: flex;
+            gap: 10px;
+            z-index: 100;
+        }
+
+        .control-btn {
+            padding: 8px 15px;
+            background: rgba(255, 255, 255, 0.9);
+            border: none;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 0.9em;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            color: #333;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .control-btn:hover {
+            background: rgba(255, 255, 255, 1);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+        }
+
+        /* History Panel */
+        .history-panel {
+            margin-bottom: 20px;
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 15px;
+            box-shadow: 0 6px 20px rgba(0,0,0,0.1);
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .history-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            border-bottom: 2px solid #f0f0f0;
+            padding-bottom: 10px;
+        }
+
+        .history-header h3 {
+            margin: 0;
+            color: #e91e63;
+        }
+
+        .clear-btn {
+            padding: 5px 10px;
+            background: #ff6b6b;
+            color: white;
+            border: none;
+            border-radius: 15px;
+            cursor: pointer;
+            font-size: 0.8em;
+            transition: all 0.3s ease;
+        }
+
+        .clear-btn:hover {
+            background: #ff5252;
+            transform: scale(1.05);
+        }
+
+        .history-list {
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .history-item {
+            display: flex;
+            gap: 15px;
+            padding: 15px;
+            margin-bottom: 10px;
+            background: #f8f9fa;
+            border-radius: 10px;
+            border-left: 4px solid #e91e63;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+
+        .history-item:hover {
+            background: #e3f2fd;
+            transform: translateX(5px);
+        }
+
+        .history-image {
+            width: 60px;
+            height: 60px;
+            object-fit: cover;
+            border-radius: 8px;
+            flex-shrink: 0;
+        }
+
+        .history-content {
+            flex: 1;
+        }
+
+        .history-date {
+            font-size: 0.8em;
+            color: #666;
+            margin-bottom: 5px;
+        }
+
+        .history-comment {
+            font-size: 0.9em;
+            color: #333;
+            line-height: 1.4;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+
+        .no-history {
+            text-align: center;
+            color: #999;
+            font-style: italic;
+            padding: 20px;
+        }
+
+        /* Dark Theme */
+        body.dark-theme {
+            background: linear-gradient(-45deg, #2c3e50, #34495e, #2c3e50, #34495e);
+            color: #ecf0f1;
+        }
+
+        body.dark-theme .container {
+            background-color: rgba(52, 73, 94, 0.95);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+        }
+
+        body.dark-theme h1 {
+            color: #e74c3c;
+        }
+
+        body.dark-theme .upload-section {
+            background-color: rgba(44, 62, 80, 0.8);
+            border-color: #e74c3c;
+        }
+
+        body.dark-theme .custom-file-upload {
+            background: linear-gradient(45deg, #e74c3c 0%, #c0392b 100%);
+        }
+
+        body.dark-theme button#submitBtn {
+            background: linear-gradient(45deg, #e74c3c 0%, #c0392b 100%);
+        }
+
+        body.dark-theme .history-panel {
+            background: rgba(52, 73, 94, 0.95);
+        }
+
+        body.dark-theme .history-item {
+            background: rgba(44, 62, 80, 0.8);
+            border-left-color: #e74c3c;
+        }
+
+        body.dark-theme .history-item:hover {
+            background: rgba(52, 73, 94, 0.9);
+        }
+
+        body.dark-theme .control-btn {
+            background: rgba(52, 73, 94, 0.9);
+            color: #ecf0f1;
+        }
+
+        body.dark-theme .control-btn:hover {
+            background: rgba(44, 62, 80, 1);
+        }
+
+        /* Advanced Panel Styles */
+        .advanced-panel {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(255, 255, 255, 0.98);
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.3);
+            z-index: 1000;
+            min-width: 400px;
+            max-width: 90vw;
+        }
+
+        .advanced-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 25px;
+            border-bottom: 2px solid #f0f0f0;
+            padding-bottom: 15px;
+        }
+
+        .advanced-header h3 {
+            margin: 0;
+            color: #e91e63;
+            font-size: 1.3em;
+        }
+
+        .close-btn {
+            background: #ff6b6b;
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            cursor: pointer;
+            font-size: 1.1em;
+            transition: all 0.3s ease;
+        }
+
+        .close-btn:hover {
+            background: #ff5252;
+            transform: scale(1.1);
+        }
+
+        .setting-group {
+            margin-bottom: 25px;
+        }
+
+        .setting-label {
+            display: block;
+            font-weight: 600;
+            margin-bottom: 10px;
+            color: #333;
+            font-size: 1.1em;
+        }
+
+        .style-options, .language-options {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .style-btn, .lang-btn {
+            padding: 10px 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 25px;
+            background: white;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: 600;
+            color: #666;
+        }
+
+        .style-btn.active, .lang-btn.active {
+            background: linear-gradient(45deg, #e91e63 0%, #f06292 100%);
+            color: white;
+            border-color: #e91e63;
+            transform: scale(1.05);
+            box-shadow: 0 4px 15px rgba(233, 30, 99, 0.4);
+            font-weight: 700;
+        }
+
+        .style-btn:hover, .lang-btn:hover {
+            border-color: #e91e63;
+            transform: translateY(-2px);
+        }
+
+        .settings-toggle {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .settings-btn {
+            padding: 10px 20px;
+            background: linear-gradient(45deg, #9c27b0 0%, #e91e63 100%);
+            color: white;
+            border: none;
+            border-radius: 25px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(156, 39, 176, 0.3);
+        }
+
+        .settings-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(156, 39, 176, 0.4);
+        }
+
+        /* Filter Preview Styles */
+        .filter-preview {
+            margin-top: 20px;
+            padding: 20px;
+            background: rgba(248, 249, 250, 0.9);
+            border-radius: 15px;
+            border: 2px dashed #e91e63;
+        }
+
+        .filter-header {
+            text-align: center;
+            margin-bottom: 15px;
+        }
+
+        .filter-header h4 {
+            margin: 0;
+            color: #e91e63;
+            font-size: 1.1em;
+        }
+
+        .filter-container {
+            text-align: center;
+        }
+
+        .filter-canvas {
+            max-width: 100%;
+            max-height: 200px;
+            border-radius: 10px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            margin-bottom: 15px;
+        }
+
+        .filter-controls {
+            display: flex;
+            gap: 8px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .filter-btn {
+            padding: 8px 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 20px;
+            background: white;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 0.9em;
+            font-weight: 600;
+            color: #666;
+        }
+
+        .filter-btn.active {
+            background: linear-gradient(45deg, #ff9800 0%, #f57c00 100%);
+            color: white;
+            border-color: #ff9800;
+        }
+
+        .filter-btn:hover {
+            border-color: #ff9800;
+            transform: scale(1.05);
+        }
+
+        /* Dark Theme for Advanced Features */
+        body.dark-theme .advanced-panel {
+            background: rgba(52, 73, 94, 0.98);
+            color: #ecf0f1;
+        }
+
+        body.dark-theme .setting-label {
+            color: #ecf0f1;
+        }
+
+        body.dark-theme .style-btn, 
+        body.dark-theme .lang-btn,
+        body.dark-theme .filter-btn {
+            background: rgba(44, 62, 80, 0.8);
+            border-color: #5a6c7d;
+            color: #ecf0f1;
+        }
+
+        body.dark-theme .filter-preview {
+            background: rgba(44, 62, 80, 0.9);
+            border-color: #e74c3c;
+        }
+
+        /* Mobile Responsive */
+        @media (max-width: 768px) {
+            .advanced-panel {
+                min-width: 90vw;
+                padding: 20px;
+            }
+            
+            .style-options, .language-options {
+                justify-content: center;
+            }
+            
+            .filter-preview {
+                margin-top: 15px;
+                padding: 15px;
+            }
+            
+            .filter-canvas {
+                max-width: 100%;
+                max-height: 250px;
+                min-height: 150px;
+                width: auto;
+                height: auto;
+            }
+            
+            .filter-controls {
+                gap: 8px;
+                margin-top: 15px;
+            }
+            
+            .filter-btn {
+                padding: 8px 12px;
+                font-size: 0.85em;
+                min-width: 60px;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            .filter-preview {
+                margin-top: 10px;
+                padding: 10px;
+            }
+            
+            .filter-canvas {
+                max-width: 100%;
+                max-height: 200px;
+                min-height: 120px;
+                width: auto;
+                height: auto;
+            }
+            
+            .filter-controls {
+                gap: 6px;
+                margin-top: 10px;
+            }
+            
+            .filter-btn {
+                padding: 6px 10px;
+                font-size: 0.8em;
+                min-width: 50px;
+                flex: 1;
+                max-width: calc(50% - 3px);
+            }
+            
+            .filter-header h4 {
+                font-size: 1em;
+            }
+        }
+
+        #imagePreviewContainer {
+            margin-bottom: 20px;
+            border: 1px solid #ffe0e9; /* Light pink border */
+            padding: 15px;
+            border-radius: 12px;
+            background-color: #fffafa;
+            min-height: 150px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden; /* Ensure image fits */
+        }
+
+        #imagePreview {
+            max-width: 100%;
+            max-height: 350px;
+            border-radius: 8px;
+            object-fit: contain; /* Ensure image aspect ratio is maintained */
+        }
+
+        #aiComment {
+            background-color: #e6fff2; /* Slightly more vibrant mint green */
+            padding: 25px;
+            border-radius: 15px; /* Slightly more rounded */
+            min-height: 70px;
+            color: #1e5926; /* Darker, richer green for text */
+            white-space: pre-wrap;
+            border: 2px dashed #a3d9b1; /* Dashed border for a bit of fun */
+            font-size: 1.1em; /* Slightly larger font */
+            line-height: 1.7;
+            box-shadow: 0 3px 8px rgba(0,0,0,0.05); /* Subtle shadow */
+            position: relative; /* For loading indicator */
+            transition: background-color 0.3s ease; /* Smooth transition for loading state */
+        }
+
+        #aiComment.loading {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: transparent; /* Hide text during loading */
+        }
+
+        #aiComment.loading::after {
+            content: '';
+            display: block;
+            width: 40px;
+            height: 40px;
+            border: 5px solid #a3d9b1; /* Light green border */
+            border-top-color: #1e5926; /* Darker green for spinner part */
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        .loading-spinner {
+            border: 5px solid #fce4ec; /* Light pink */
+            border-top: 5px solid #e91e63; /* Pink */
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 25px auto;
+            display: none;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .error-message {
+            color: #d9534f; /* Standard error red */
+            background-color: #fddfee; /* Light pink error background */
+            border: 1px solid #d9534f;
+            padding: 10px;
+            border-radius: 8px;
+            margin-top: 15px;
+        }
+
+        /* Adding some playful touches to the file input */
+        input[type="file"] {
+            color: transparent; /* Hide default text */
+        }
+        input[type="file"]::before {
+            content: '✨ 選擇一張照片 ✨'; /* Playful text */
+            color: #e83e8c;
+            display: inline-block;
+            background: -webkit-linear-gradient(#e83e8c, #ff85a2);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            font-weight: bold;
+            margin-right: 10px;
+        }
+
+        /* Large screens optimization */
+        @media (min-width: 1200px) {
+            .container {
+                max-width: 700px;
+                padding: 50px;
+            }
+            
+            .upload-section, .result-section {
+                margin-bottom: 30px;
+            }
+            
+            h1 {
+                text-align: center;
+                margin-bottom: 30px;
+            }
+            
+            .top-controls {
+                margin-bottom: 20px;
+            }
+        }
+
+        /* Tablet optimization */
+        @media (min-width: 769px) and (max-width: 1199px) {
+            .container {
+                max-width: 800px;
+                padding: 40px;
+            }
+            
+            .share-buttons, .warning-buttons {
+                justify-content: space-between;
+            }
+            
+            .filter-controls {
+                gap: 12px;
+            }
+            
+            .advanced-settings {
+                grid-template-columns: 1fr 1fr;
+                gap: 20px;
+            }
+        }
+
+        /* Mobile and small tablet adjustments */
+        @media (max-width: 768px) {
+            body {
+                padding: 5px;
+            }
+            
+            body::after {
+                font-size: 15vw; /* Smaller emoji on mobile */
+                color: rgba(0, 0, 0, 0.05); /* Even more subtle */
+            }
+            
+            .container {
+                padding: 20px 15px;
+                margin: 5px;
+                max-width: calc(100vw - 20px);
+                border-radius: 15px;
+            }
+            
+            h1 {
+                font-size: 1.6em;
+                margin-bottom: 20px;
+            }
+            
+            .upload-section {
+                padding: 15px;
+                margin-bottom: 20px;
+            }
+            
+            button, input[type="file"]::file-selector-button {
+                padding: 12px 20px;
+                font-size: 0.9em;
+            }
+            
+            #imagePreview {
+                max-height: 250px;
+            }
+            
+            #aiComment {
+                font-size: 0.95em;
+                padding: 15px;
+                line-height: 1.5;
+            }
+            
+            .top-controls {
+                /* flex-direction: column; */ /* Keep them in a row */
+                gap: 8px; /* Adjust gap for smaller screens */
+                right: 10px; /* Adjust position for smaller screens */
+                top: 10px;
+            }
+
+            .control-btn {
+                padding: 6px 10px; /* Adjust padding for smaller buttons */
+                font-size: 0.8em; /* Adjust font size for smaller buttons */
+            }
+            
+            .share-buttons, .warning-buttons {
+                flex-direction: column;
+                width: 100%;
+            }
+            
+            .share-btn, .compress-btn, .continue-btn, .cancel-btn {
+                width: 100%;
+            }
+        }
+
+        @media (max-width: 480px) {
+            body {
+                padding: 2px;
+            }
+            
+            body::after {
+                font-size: 12vw; /* Even smaller on very small screens */
+                color: rgba(0, 0, 0, 0.03);
+            }
+            
+            h1 {
+                font-size: 1.4em;
+                margin-bottom: 15px;
+            }
+            
+            .container {
+                border-radius: 12px;
+                padding: 15px 10px;
+                margin: 2px;
+                max-width: calc(100vw - 10px);
+            }
+            
+            .upload-section {
+                padding: 10px;
+                margin-bottom: 15px;
+            }
+            
+            button, input[type="file"]::file-selector-button {
+                width: 100%;
+                padding: 10px;
+                font-size: 0.85em;
+            }
+
+            .top-controls .control-btn {
+                width: auto; /* Override the 100% width for top control buttons */
+                padding: 5px 8px; /* Further adjust padding for very small screens */
+                font-size: 0.75em; /* Further adjust font size */
+            }
+            
+            #uploadForm {
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+            }
+            
+            #imagePreview {
+                max-height: 180px;
+            }
+            
+            #aiComment {
+                font-size: 0.85em;
+                padding: 12px;
+                line-height: 1.4;
+            }
+            
+            /* Make sparkles smaller on mobile */
+            .container::before, .container::after {
+                width: 40px;
+                height: 40px;
+            }
+            
+            .container::after {
+                width: 60px;
+                height: 60px;
+            }
+        }
+
+        /* Progress Bar Styles */
+        .progress-container {
+            width: 100%;
+            background-color: #f0f0f0;
+            border-radius: 10px;
+            margin-top: 15px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .progress-bar {
+            height: 8px;
+            background: linear-gradient(45deg, #84fab0 0%, #8fd3f4 100%);
+            border-radius: 10px;
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+
+        .progress-text {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 0.8em;
+            font-weight: 600;
+            color: #666;
+        }
+
+        .loading-content {
+            text-align: center;
+        }
+
+        /* File Size Warning Styles */
+        .file-size-warning {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        .warning-content {
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            text-align: center;
+            max-width: 400px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+        }
+
+        .warning-content h3 {
+            color: #ff9800;
+            margin-bottom: 15px;
+            font-size: 1.3em;
+        }
+
+        .warning-content p {
+            color: #666;
+            margin-bottom: 20px;
+            line-height: 1.5;
+        }
+
+        .warning-buttons {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .compress-btn, .continue-btn, .cancel-btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 20px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .compress-btn {
+            background: linear-gradient(45deg, #4CAF50 0%, #45a049 100%);
+            color: white;
+        }
+
+        .continue-btn {
+            background: linear-gradient(45deg, #ff9800 0%, #f57c00 100%);
+            color: white;
+        }
+
+        .cancel-btn {
+            background: linear-gradient(45deg, #f44336 0%, #d32f2f 100%);
+            color: white;
+        }
+
+        .compress-btn:hover, .continue-btn:hover, .cancel-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+        }
+
+        /* Enhanced Error Message Styles */
+        .error-message {
+            background: linear-gradient(45deg, #ffebee 0%, #ffcdd2 100%);
+            border: 2px solid #f44336;
+            border-radius: 10px;
+            padding: 15px;
+            margin: 15px 0;
+            color: #d32f2f;
+            font-weight: 600;
+            text-align: center;
+            box-shadow: 0 4px 15px rgba(244, 67, 54, 0.2);
+        }
+
+        .error-message .error-title {
+            font-size: 1.1em;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .error-message .error-suggestion {
+             font-size: 0.9em;
+             color: #666;
+             margin-top: 10px;
+             font-weight: normal;
+         }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Theme Toggle and History Button -->
+        <div class="top-controls">
+            <button id="themeToggle" class="control-btn">🌙 暗色主題</button>
+            <button id="historyToggle" class="control-btn">📚 分析記錄</button>
+        </div>
+        
+        <!-- Advanced Settings Panel -->
+        <div id="advancedPanel" class="advanced-panel" style="display: none;">
+            <div class="advanced-header">
+                <h3>⚙️ 進階設定</h3>
+                <button id="closeAdvanced" class="close-btn">✕</button>
+            </div>
+            
+            <!-- Comment Style Selection -->
+            <div class="setting-group">
+                <label class="setting-label">🔍 分析風格</label>
+                <div class="style-buttons">
+                    <button class="style-btn active" data-style="mild">😊 基礎分析</button>
+                    <button class="style-btn" data-style="medium">🧐 詳細分析</button>
+                    <button class="style-btn" data-style="spicy">🎯 深度分析</button>
+                </div>
+            </div>
+            
+            <!-- Language Selection -->
+            <div class="setting-group">
+                <label class="setting-label">🌍 語言選擇</label>
+                <div class="language-options">
+                    <button class="lang-btn active" data-lang="zh">🇹🇼 繁體中文</button>
+                    <button class="lang-btn" data-lang="en">🇺🇸 English</button>
+                    <button class="lang-btn" data-lang="ja">🇯🇵 日本語</button>
+                </div>
+            </div>
+        </div>
+        
+        <h1>🔍 AI 面相分析器 👤</h1>
+        
+        <!-- History Panel -->
+        <div id="historyPanel" class="history-panel" style="display: none;">
+            <div class="history-header">
+                <h3>📚 分析記錄</h3>
+                <button id="clearHistory" class="clear-btn">🗑️ 清空</button>
+            </div>
+            <div id="historyList" class="history-list">
+                <p class="no-history">還沒有分析記錄</p>
+            </div>
+        </div>
+        <!-- Advanced Settings Toggle -->
+        <div class="settings-toggle">
+            <button id="advancedToggle" class="settings-btn">⚙️ 進階設定</button>
+        </div>
+        
+        <form id="uploadForm" enctype="multipart/form-data">
+            <div class="upload-section" id="uploadSection">
+                <div class="drag-drop-text">📁 放開以上傳人像照片</div>
+                <label for="imageUpload" class="custom-file-upload">選擇人像照片</label>
+                <input type="file" id="imageUpload" name="image" accept="image/jpeg, image/png, image/jpg" required>
+                <span id="fileName">尚未選擇任何檔案</span>
+                
+                <!-- Image Filter Preview -->
+                <div id="filterPreview" class="filter-preview" style="display: none;">
+                    <div class="filter-header">
+                        <h4>🎨 濾鏡預覽</h4>
+                    </div>
+                    <div class="filter-container">
+                        <canvas id="filterCanvas" class="filter-canvas"></canvas>
+                        <div class="filter-controls">
+                            <button type="button" class="filter-btn active" data-filter="none">原圖</button>
+                            <button type="button" class="filter-btn" data-filter="vintage">復古</button>
+                            <button type="button" class="filter-btn" data-filter="bw">黑白</button>
+                            <button type="button" class="filter-btn" data-filter="sepia">懷舊</button>
+                            <button type="button" class="filter-btn" data-filter="bright">明亮</button>
+                            <button type="button" class="filter-btn" data-filter="contrast">對比</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <button type="submit" id="submitBtn">開始面相分析！</button>
+        </form>
+
+        <div id="loading" class="loader" style="display: none;">
+            <div class="loading-content">
+                <div class="spinner"></div>
+                <p>AI 正在分析面相中...</p>
+                <div class="progress-container">
+                    <div class="progress-bar" id="progressBar"></div>
+                    <div class="progress-text" id="progressText">0%</div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- File size warning -->
+        <div id="fileSizeWarning" class="file-size-warning" style="display: none;">
+            <div class="warning-content">
+                <h3>⚠️ 檔案較大</h3>
+                <p id="fileSizeMessage"></p>
+                <div class="warning-buttons">
+                    <button id="compressBtn" class="compress-btn">壓縮圖片</button>
+                    <button id="continueBtn" class="continue-btn">繼續上傳</button>
+                    <button id="cancelBtn" class="cancel-btn">取消</button>
+                </div>
+            </div>
+        </div>
+        
+        <div id="errorDisplay" class="error-message" style="display: none;"></div>
+
+        <div id="imagePreview" class="image-preview-container">
+            <!-- Uploaded image will be shown here -->
+        </div>
+
+        <div id="aiResponseContainer" style="display: none;">
+            <h2>🔍 AI 專業面相分析：</h2>
+            <div id="aiResponse" class="ai-comment-box"></div>
+            
+            <!-- Rating System -->
+            <div id="ratingSection" class="rating-section" style="display: none;">
+                <h3>⭐ 分析滿意度評分：</h3>
+                <div class="rating-stars">
+                    <span class="star" data-rating="1">💀</span>
+                    <span class="star" data-rating="2">💀</span>
+                    <span class="star" data-rating="3">💀</span>
+                    <span class="star" data-rating="4">💀</span>
+                    <span class="star" data-rating="5">💀</span>
+                </div>
+                <div class="rating-text">點擊評分分析滿意度</div>
+            </div>
+            
+            <!-- Share Buttons -->
+            <div id="shareSection" class="share-section" style="display: none;">
+                <h3>📤 分享這個面相分析：</h3>
+                <div class="share-buttons">
+                    <button class="share-btn facebook" onclick="shareToFacebook()">📘 Facebook</button>
+                    <button class="share-btn twitter" onclick="shareToTwitter()">🐦 Twitter</button>
+                    <button class="share-btn line" onclick="shareToLine()">💬 LINE</button>
+                    <button class="share-btn copy" onclick="copyToClipboard()">📋 複製連結</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const uploadForm = document.getElementById('uploadForm');
+        const imageUpload = document.getElementById('imageUpload');
+        const fileNameDisplay = document.getElementById('fileName');
+        const imagePreviewDiv = document.getElementById('imagePreview');
+        const aiResponseDiv = document.getElementById('aiResponse');
+        const aiResponseContainer = document.getElementById('aiResponseContainer');
+        const loadingIndicator = document.getElementById('loading'); // Make sure this ID exists or add it
+        const submitBtn = document.getElementById('submitBtn');
+        const errorDisplay = document.getElementById('errorDisplay');
+        const uploadSection = document.getElementById('uploadSection');
+
+        function showError(message) {
+            errorDisplay.textContent = message;
+            errorDisplay.style.display = 'block';
+        }
+
+        function hideError() {
+            errorDisplay.style.display = 'none';
+        }
+
+        function handleFile(file) {
+            if (file && file.type.startsWith('image/')) {
+                fileNameDisplay.textContent = file.name;
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    imagePreviewDiv.innerHTML = ''; // Clear previous preview
+                    const img = document.createElement('img');
+                    img.src = e.target.result;
+                    img.alt = 'Selected Image Preview';
+                    img.style.opacity = '0';
+                    img.style.transform = 'scale(0.8) translateY(20px)';
+                    imagePreviewDiv.appendChild(img);
+                    
+                    // Trigger animation after image is added to DOM
+                    setTimeout(() => {
+                        img.style.animation = 'imagePreviewFadeIn 0.6s ease-out forwards';
+                    }, 10);
+                }
+                reader.readAsDataURL(file);
+                submitBtn.disabled = false; // Enable submit button once a file is selected
+                hideError(); // Hide any previous errors
+            } else {
+                showError('請選擇有效的圖片檔案（JPG、PNG）');
+            }
+        }
+
+        // Drag and drop functionality
+        uploadSection.addEventListener('dragover', function(e) {
+            e.preventDefault();
+            uploadSection.classList.add('drag-over');
+        });
+
+        uploadSection.addEventListener('dragleave', function(e) {
+            e.preventDefault();
+            if (!uploadSection.contains(e.relatedTarget)) {
+                uploadSection.classList.remove('drag-over');
+            }
+        });
+
+        uploadSection.addEventListener('drop', function(e) {
+            e.preventDefault();
+            uploadSection.classList.remove('drag-over');
+            
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                const file = files[0];
+                // Set the file to the input element
+                const dataTransfer = new DataTransfer();
+                dataTransfer.items.add(file);
+                imageUpload.files = dataTransfer.files;
+                
+                handleFile(file);
+            }
+        });
+
+        // Typewriter effect function
+        function typewriterEffect(element, text) {
+            element.textContent = '';
+            element.classList.remove('typewriter');
+            let i = 0;
+            const speed = 50; // milliseconds per character
+            
+            function typeChar() {
+                if (i < text.length) {
+                    element.textContent += text.charAt(i);
+                    i++;
+                    setTimeout(typeChar, speed);
+                } else {
+                    // Add blinking cursor effect after typing is complete
+                    element.style.borderRight = '2px solid #e91e63';
+                    element.style.animation = 'blink-caret 0.75s step-end infinite';
+                }
+            }
+            
+            typeChar();
+        }
+
+        // Rating system functionality
+        let currentRating = 0;
+        
+        function initRatingSystem() {
+            const stars = document.querySelectorAll('.star');
+            const ratingText = document.querySelector('.rating-text');
+            
+            stars.forEach((star, index) => {
+                star.addEventListener('click', function() {
+                    currentRating = parseInt(this.dataset.rating);
+                    updateStars(currentRating);
+                    updateRatingText(currentRating);
+                    playClickSound();
+                });
+                
+                star.addEventListener('mouseenter', function() {
+                    const hoverRating = parseInt(this.dataset.rating);
+                    updateStars(hoverRating);
+                });
+            });
+            
+            document.querySelector('.rating-stars').addEventListener('mouseleave', function() {
+                updateStars(currentRating);
+            });
+        }
+        
+        function updateStars(rating) {
+            const stars = document.querySelectorAll('.star');
+            stars.forEach((star, index) => {
+                if (index < rating) {
+                    star.classList.add('active');
+                } else {
+                    star.classList.remove('active');
+                }
+            });
+        }
+        
+        function updateRatingText(rating) {
+            const ratingText = document.querySelector('.rating-text');
+            const texts = {
+                1: '基礎滿意 😊',
+                2: '還算滿意 👍',
+                3: '非常滿意 🌟',
+                4: '超級滿意 ⭐',
+                5: '完美分析 🏆'
+            };
+            ratingText.textContent = texts[rating] || '點擊評分分析滿意度';
+        }
+
+        function playClickSound() {
+            playSound(800, 0.1, 0.1);
+        }
+
+        // Sound Effects System
+        function playSound(frequency, duration, volume = 0.1) {
+            try {
+                const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                const oscillator = audioContext.createOscillator();
+                const gainNode = audioContext.createGain();
+                
+                oscillator.connect(gainNode);
+                gainNode.connect(audioContext.destination);
+                
+                oscillator.frequency.setValueAtTime(frequency, audioContext.currentTime);
+                gainNode.gain.setValueAtTime(volume, audioContext.currentTime);
+                gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + duration);
+                
+                oscillator.start(audioContext.currentTime);
+                oscillator.stop(audioContext.currentTime + duration);
+            } catch (e) {
+                console.log('Audio not supported');
+            }
+        }
+
+        function playSuccessSound() {
+            playSound(523, 0.2, 0.15); // C note
+            setTimeout(() => playSound(659, 0.2, 0.15), 100); // E note
+            setTimeout(() => playSound(784, 0.3, 0.15), 200); // G note
+        }
+
+        function playErrorSound() {
+            playSound(200, 0.5, 0.2);
+        }
+
+        function playButtonSound() {
+            playSound(600, 0.1, 0.1);
+        }
+
+        // History Management
+        class HistoryManager {
+            constructor() {
+                this.history = this.loadHistory();
+                this.maxItems = 20;
+            }
+
+            loadHistory() {
+                try {
+                    return JSON.parse(localStorage.getItem('aiCommentHistory') || '[]');
+                } catch {
+                    return [];
+                }
+            }
+
+            saveHistory() {
+                localStorage.setItem('aiCommentHistory', JSON.stringify(this.history));
+            }
+
+            addItem(imageData, comment, rating = 0) {
+                const item = {
+                    id: Date.now(),
+                    date: new Date().toLocaleString('zh-TW'),
+                    imageData: imageData,
+                    comment: comment,
+                    rating: rating,
+                    timestamp: Date.now()
+                };
+
+                this.history.unshift(item);
+                if (this.history.length > this.maxItems) {
+                    this.history = this.history.slice(0, this.maxItems);
+                }
+                this.saveHistory();
+                this.renderHistory();
+            }
+
+            clearHistory() {
+                this.history = [];
+                this.saveHistory();
+                this.renderHistory();
+                playButtonSound();
+            }
+
+            renderHistory() {
+                const historyList = document.getElementById('historyList');
+                
+                if (this.history.length === 0) {
+                    historyList.innerHTML = '<p class="no-history">還沒有分析記錄</p>';
+                    return;
+                }
+
+                historyList.innerHTML = this.history.map(item => `
+                    <div class="history-item" onclick="historyManager.loadHistoryItem(${item.id})">
+                        <img src="${item.imageData}" alt="歷史圖片" class="history-image">
+                        <div class="history-content">
+                            <div class="history-date">${item.date}</div>
+                            <div class="history-comment">${item.comment}</div>
+                        </div>
+                    </div>
+                `).join('');
+            }
+
+            loadHistoryItem(id) {
+                const item = this.history.find(h => h.id === id);
+                if (!item) return;
+
+                // Load image
+                const imagePreview = document.getElementById('imagePreview');
+                imagePreview.innerHTML = `<img src="${item.imageData}" alt="歷史圖片" style="max-width: 100%; max-height: 300px; border-radius: 10px;">`;
+
+                // Convert base64 image to File object and set it to imageUpload
+                this.setHistoryImageAsCurrentFile(item.imageData, item.id);
+
+                // Load comment
+                const aiResponse = document.getElementById('aiResponse');
+                const aiResponseContainer = document.getElementById('aiResponseContainer');
+                aiResponse.textContent = item.comment;
+                aiResponseContainer.style.display = 'block';
+
+                // Hide history panel
+                document.getElementById('historyPanel').style.display = 'none';
+                
+                playButtonSound();
+            }
+
+            setHistoryImageAsCurrentFile(imageDataUrl, historyId) {
+                // Convert data URL to blob
+                fetch(imageDataUrl)
+                    .then(res => res.blob())
+                    .then(blob => {
+                        // Create a File object from the blob
+                        const file = new File([blob], `history_image_${historyId}.jpg`, { type: 'image/jpeg' });
+                        
+                        // Create a new FileList-like object
+                        const dataTransfer = new DataTransfer();
+                        dataTransfer.items.add(file);
+                        
+                        // Set the files to the input element
+                        const imageUpload = document.getElementById('imageUpload');
+                        imageUpload.files = dataTransfer.files;
+                        
+                        // Trigger change event to update any listeners
+                        const event = new Event('change', { bubbles: true });
+                        imageUpload.dispatchEvent(event);
+                    })
+                    .catch(error => {
+                        console.error('Error converting history image to file:', error);
+                    });
+            }
+        }
+
+        // Theme Management
+        class ThemeManager {
+            constructor() {
+                this.isDark = localStorage.getItem('darkTheme') === 'true';
+                this.applyTheme();
+            }
+
+            toggle() {
+                this.isDark = !this.isDark;
+                localStorage.setItem('darkTheme', this.isDark);
+                this.applyTheme();
+                playButtonSound();
+            }
+
+            applyTheme() {
+                const body = document.body;
+                const themeToggle = document.getElementById('themeToggle');
+                
+                if (this.isDark) {
+                    body.classList.add('dark-theme');
+                    themeToggle.textContent = '☀️ 亮色主題';
+                } else {
+                    body.classList.remove('dark-theme');
+                    themeToggle.textContent = '🌙 暗色主題';
+                }
+            }
+        }
+
+        // Initialize managers
+        let historyManager;
+        let themeManager;
+
+        // Advanced Settings Manager
+        class AdvancedSettingsManager {
+            constructor() {
+                this.currentStyle = localStorage.getItem('commentStyle') || 'mild';
+                this.currentLanguage = localStorage.getItem('commentLanguage') || 'zh';
+                this.currentFilter = 'none';
+                this.originalImageData = null;
+            }
+
+            getStylePrompt() {
+                const stylePrompts = {
+                    'mild': {
+                        'zh': '請進行基礎的面相分析，包括面部特徵和基本性格特質',
+                        'en': 'Please perform basic physiognomy analysis, including facial features and basic personality traits',
+                        'ja': '基本的な人相分析を行ってください。顔の特徴と基本的な性格特性を含めて'
+                    },
+                    'medium': {
+                        'zh': '請進行詳細的面相分析，包括面部特徵描述、性格特質分析、個人魅力點和發展建議',
+                        'en': 'Please perform detailed physiognomy analysis, including facial feature description, personality trait analysis, personal charm points and development suggestions',
+                        'ja': '詳細な人相分析を行ってください。顔の特徴の説明、性格特性の分析、個人的な魅力ポイント、発展のアドバイスを含めて'
+                    },
+                    'spicy': {
+                        'zh': '請進行深度的面相分析，包括詳細的面部特徵測量、深層性格特質解讀、潛在能力分析和全面的發展建議',
+                        'en': 'Please perform in-depth physiognomy analysis, including detailed facial feature measurements, deep personality trait interpretation, potential ability analysis and comprehensive development suggestions',
+                        'ja': '深層的な人相分析を行ってください。詳細な顔の特徴測定、深い性格特性の解釈、潜在能力の分析、包括的な発展アドバイスを含めて'
+                    }
+                };
+                return stylePrompts[this.currentStyle][this.currentLanguage];
+            }
+
+            setStyle(style) {
+                this.currentStyle = style;
+                localStorage.setItem('commentStyle', style);
+                this.updateStyleButtons();
+                playButtonSound();
+            }
+
+            setLanguage(language) {
+                this.currentLanguage = language;
+                localStorage.setItem('commentLanguage', language);
+                this.updateLanguageButtons();
+                playButtonSound();
+            }
+
+            updateStyleButtons() {
+                document.querySelectorAll('.style-btn').forEach(btn => {
+                    btn.classList.toggle('active', btn.dataset.style === this.currentStyle);
+                });
+            }
+
+            updateLanguageButtons() {
+                document.querySelectorAll('.lang-btn').forEach(btn => {
+                    btn.classList.toggle('active', btn.dataset.lang === this.currentLanguage);
+                });
+            }
+
+            initializeSettings() {
+                this.updateStyleButtons();
+                this.updateLanguageButtons();
+            }
+        }
+
+        // Image Filter Manager
+        class ImageFilterManager {
+            constructor() {
+                this.canvas = null;
+                this.ctx = null;
+                this.originalImageData = null;
+                this.currentFilter = 'none';
+            }
+
+            initCanvas() {
+                this.canvas = document.getElementById('filterCanvas');
+                this.ctx = this.canvas.getContext('2d');
+            }
+
+            loadImage(file) {
+                return new Promise((resolve) => {
+                    const reader = new FileReader();
+                    reader.onload = (e) => {
+                        const img = new Image();
+                        img.onload = () => {
+                            this.setupCanvas(img);
+                            this.originalImageData = this.ctx.getImageData(0, 0, this.canvas.width, this.canvas.height);
+                            resolve(img);
+                        };
+                        img.src = e.target.result;
+                    };
+                    reader.readAsDataURL(file);
+                });
+            }
+
+            setupCanvas(img) {
+                const maxWidth = 300;
+                const maxHeight = 200;
+                let { width, height } = img;
+
+                if (width > maxWidth) {
+                    height = (height * maxWidth) / width;
+                    width = maxWidth;
+                }
+                if (height > maxHeight) {
+                    width = (width * maxHeight) / height;
+                    height = maxHeight;
+                }
+
+                this.canvas.width = width;
+                this.canvas.height = height;
+                this.ctx.drawImage(img, 0, 0, width, height);
+            }
+
+            applyFilter(filterType) {
+                if (!this.originalImageData) return;
+
+                this.currentFilter = filterType;
+                this.updateFilterButtons();
+
+                if (filterType === 'none') {
+                    this.ctx.putImageData(this.originalImageData, 0, 0);
+                    return;
+                }
+
+                const imageData = this.ctx.createImageData(this.originalImageData);
+                const data = imageData.data;
+                const originalData = this.originalImageData.data;
+
+                for (let i = 0; i < originalData.length; i += 4) {
+                    let r = originalData[i];
+                    let g = originalData[i + 1];
+                    let b = originalData[i + 2];
+                    let a = originalData[i + 3];
+
+                    switch (filterType) {
+                        case 'bw':
+                            const gray = 0.299 * r + 0.587 * g + 0.114 * b;
+                            r = g = b = gray;
+                            break;
+                        case 'sepia':
+                            const newR = Math.min(255, (r * 0.393) + (g * 0.769) + (b * 0.189));
+                            const newG = Math.min(255, (r * 0.349) + (g * 0.686) + (b * 0.168));
+                            const newB = Math.min(255, (r * 0.272) + (g * 0.534) + (b * 0.131));
+                            r = newR; g = newG; b = newB;
+                            break;
+                        case 'vintage':
+                            r = Math.min(255, r * 1.2);
+                            g = Math.min(255, g * 1.1);
+                            b = Math.min(255, b * 0.8);
+                            break;
+                        case 'bright':
+                            r = Math.min(255, r * 1.3);
+                            g = Math.min(255, g * 1.3);
+                            b = Math.min(255, b * 1.3);
+                            break;
+                        case 'contrast':
+                            const factor = 1.5;
+                            r = Math.min(255, Math.max(0, (r - 128) * factor + 128));
+                            g = Math.min(255, Math.max(0, (g - 128) * factor + 128));
+                            b = Math.min(255, Math.max(0, (b - 128) * factor + 128));
+                            break;
+                    }
+
+                    data[i] = r;
+                    data[i + 1] = g;
+                    data[i + 2] = b;
+                    data[i + 3] = a;
+                }
+
+                this.ctx.putImageData(imageData, 0, 0);
+                playButtonSound();
+            }
+
+            updateFilterButtons() {
+                document.querySelectorAll('.filter-btn').forEach(btn => {
+                    btn.classList.toggle('active', btn.dataset.filter === this.currentFilter);
+                });
+            }
+
+            getFilteredImageData() {
+                return this.canvas.toDataURL('image/jpeg', 1.0);
+            }
+        }
+
+        // Initialize managers
+        let advancedSettings;
+        let imageFilterManager;
+
+        // Initialize new features
+        function initializeNewFeatures() {
+            historyManager = new HistoryManager();
+            themeManager = new ThemeManager();
+            advancedSettings = new AdvancedSettingsManager();
+            imageFilterManager = new ImageFilterManager();
+
+            // Initialize advanced settings
+            advancedSettings.initializeSettings();
+            imageFilterManager.initCanvas();
+
+            // Theme toggle
+            document.getElementById('themeToggle').addEventListener('click', () => {
+                themeManager.toggle();
+            });
+
+            // History toggle
+            document.getElementById('historyToggle').addEventListener('click', () => {
+                const historyPanel = document.getElementById('historyPanel');
+                const isVisible = historyPanel.style.display !== 'none';
+                historyPanel.style.display = isVisible ? 'none' : 'block';
+                if (!isVisible) {
+                    historyManager.renderHistory();
+                }
+                playButtonSound();
+            });
+
+            // Advanced settings toggle
+            document.getElementById('advancedToggle').addEventListener('click', () => {
+                document.getElementById('advancedPanel').style.display = 'block';
+                playButtonSound();
+            });
+
+            // Close advanced panel
+            document.getElementById('closeAdvanced').addEventListener('click', () => {
+                document.getElementById('advancedPanel').style.display = 'none';
+                playButtonSound();
+            });
+
+            // Style selection
+            document.querySelectorAll('.style-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    advancedSettings.setStyle(btn.dataset.style);
+                });
+            });
+
+            // Language selection
+            document.querySelectorAll('.lang-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    advancedSettings.setLanguage(btn.dataset.lang);
+                });
+            });
+
+            // Filter selection
+            document.querySelectorAll('.filter-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    imageFilterManager.applyFilter(btn.dataset.filter);
+                });
+            });
+
+            // File input change for filter preview
+            document.getElementById('imageUpload').addEventListener('change', async (e) => {
+                const file = e.target.files[0];
+                if (file) {
+                    // Check file size and show compression suggestion
+                    await checkFileSizeAndSuggestCompression(file);
+                    const img = await imageFilterManager.loadImage(file);
+                    document.getElementById('filterPreview').style.display = 'block';
+                    
+                    // Analyze image and apply dynamic theme
+                    if (img && img.complete) {
+                        analyzeImageAndApplyTheme(img);
+                    }
+                    
+                    playSuccessSound();
+                }
+            });
+
+            // Clear history
+            document.getElementById('clearHistory').addEventListener('click', () => {
+                if (confirm('確定要清空所有分析記錄嗎？')) {
+                    historyManager.clearHistory();
+                }
+            });
+
+            // Add sound effects to existing buttons
+            document.querySelectorAll('button, .custom-file-upload').forEach(button => {
+                button.addEventListener('click', () => {
+                    if (!button.id.includes('theme') && !button.id.includes('history') && 
+                        !button.id.includes('clear') && !button.id.includes('advanced') &&
+                        !button.classList.contains('style-btn') && !button.classList.contains('lang-btn') &&
+                        !button.classList.contains('filter-btn')) {
+                        playButtonSound();
+                    }
+                });
+            });
+        }
+
+        // Share functionality
+        let currentComment = '';
+        
+        function shareToFacebook() {
+            const url = encodeURIComponent(window.location.href);
+            const text = encodeURIComponent(`AI 面相分析：${currentComment}`);
+            window.open(`https://www.facebook.com/sharer/sharer.php?u=${url}&quote=${text}`, '_blank');
+        }
+        
+        function shareToTwitter() {
+            const url = encodeURIComponent(window.location.href);
+            const text = encodeURIComponent(`AI 面相分析：${currentComment}`);
+            window.open(`https://twitter.com/intent/tweet?text=${text}&url=${url}`, '_blank');
+        }
+        
+        function shareToLine() {
+            const url = encodeURIComponent(window.location.href);
+            const text = encodeURIComponent(`AI 面相分析：${currentComment}`);
+            window.open(`https://social-plugins.line.me/lineit/share?url=${url}&text=${text}`, '_blank');
+        }
+        
+        function copyToClipboard() {
+            const textToCopy = `AI 面相分析：${currentComment}\n\n查看更多：${window.location.href}`;
+            navigator.clipboard.writeText(textToCopy).then(() => {
+                const copyBtn = document.querySelector('.share-btn.copy');
+                const originalText = copyBtn.textContent;
+                copyBtn.textContent = '✅ 已複製！';
+                setTimeout(() => {
+                    copyBtn.textContent = originalText;
+                }, 2000);
+            }).catch(() => {
+                // Fallback for older browsers
+                const textArea = document.createElement('textarea');
+                textArea.value = textToCopy;
+                document.body.appendChild(textArea);
+                textArea.select();
+                document.execCommand('copy');
+                document.body.removeChild(textArea);
+                alert('已複製到剪貼簿！');
+            });
+        }
+
+        // Initialize rating system when page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            initRatingSystem();
+            initializeNewFeatures();
+        });
+
+        imageUpload.addEventListener('change', function(event) {
+            const file = event.target.files[0];
+            if (file) {
+                handleFile(file);
+                
+                // Apply dynamic theme based on uploaded image
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const img = new Image();
+                    img.onload = function() {
+                        analyzeImageAndApplyTheme(img);
+                    };
+                    img.src = e.target.result;
+                };
+                reader.readAsDataURL(file);
+            } else {
+                fileNameDisplay.textContent = '尚未選擇任何檔案';
+                imagePreviewDiv.innerHTML = ''; // Clear preview if no file selected
+                submitBtn.disabled = true; // Disable submit if no file
+                
+                // Reset to default theme when no image
+                document.body.classList.remove('theme-warm', 'theme-cool', 'theme-nature', 'theme-sunset', 'theme-ocean');
+            }
+        });
+
+        uploadForm.addEventListener('submit', async function(event) {
+            event.preventDefault();
+            const imageFile = document.getElementById('imageUpload').files[0];
+
+            if (!imageFile) {
+                showError('請先選擇一張圖片！');
+                return;
+            }
+
+            // Create FormData and add advanced settings
+            const formData = new FormData();
+            
+            // Use filtered image if available, otherwise use original
+            if (imageFilterManager && imageFilterManager.originalImageData && imageFilterManager.currentFilter !== 'none') {
+                // Convert canvas to blob and append
+                imageFilterManager.canvas.toBlob((blob) => {
+                    formData.append('image', blob, 'filtered_image.jpg');
+                    // Add style and language preferences
+                    if (advancedSettings) {
+                        formData.append('style', advancedSettings.currentStyle);
+                        formData.append('language', advancedSettings.currentLanguage);
+                        formData.append('stylePrompt', advancedSettings.getStylePrompt());
+                    }
+                    submitFormData(formData);
+                }, 'image/jpeg', 1.0);
+                return; // Exit early since we're handling async
+            } else {
+                formData.append('image', imageFile);
+                // Add style and language preferences
+                if (advancedSettings) {
+                    formData.append('style', advancedSettings.currentStyle);
+                    formData.append('language', advancedSettings.currentLanguage);
+                    formData.append('stylePrompt', advancedSettings.getStylePrompt());
+                }
+            }
+            
+            submitFormData(formData);
+        });
+        
+        async function submitFormData(formData) {
+            const imageFile = document.getElementById('imageUpload').files[0];
+
+            loadingIndicator.style.display = 'block';
+            submitBtn.disabled = true;
+            submitBtn.textContent = '分析中...';
+            submitBtn.classList.add('pulse-loading');
+            aiResponseDiv.textContent = '';
+            aiResponseDiv.classList.add('loading'); // Add loading class for visual feedback
+            aiResponseContainer.style.display = 'none';
+            imagePreviewDiv.innerHTML = ''; // Clear previous uploaded image preview
+            hideError();
+
+            // Start progress simulation
+            simulateProgress();
+
+            try {
+                const response = await fetch('/upload', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json().catch(() => ({ error: '伺服器錯誤，無法解析回應。' }));
+                    const errorMessage = getDetailedErrorMessage(response.status, errorData.error);
+                    throw new Error(errorMessage);
+                }
+
+                const result = await response.json();
+                
+                // Typewriter effect for AI comment
+                const comment = result.aiComment || 'AI 今天詞窮了...';
+                currentComment = comment; // Store for sharing
+                typewriterEffect(aiResponseDiv, comment);
+                
+                // Reset rating system
+                currentRating = 0;
+                updateStars(0);
+                updateRatingText(0);
+                
+                // Show rating and share sections after comment is displayed
+                setTimeout(() => {
+                    document.getElementById('ratingSection').style.display = 'block';
+                    document.getElementById('shareSection').style.display = 'block';
+                }, comment.length * 50 + 1000); // Delay based on comment length
+                
+                // Display uploaded image preview
+                let imageDataUrl = '';
+                if (result.uploadedImageUrl) {
+                    const uploadedImg = document.createElement('img');
+                    uploadedImg.src = result.uploadedImageUrl; // Use the path from server
+                    uploadedImg.alt = 'Uploaded Image';
+                    uploadedImg.style.opacity = '0';
+                    uploadedImg.style.transform = 'scale(0.8) translateY(20px)';
+                    imagePreviewDiv.appendChild(uploadedImg);
+                    imageDataUrl = result.uploadedImageUrl;
+                    
+                    // Trigger animation after image is added to DOM
+                    setTimeout(() => {
+                        uploadedImg.style.animation = 'imagePreviewFadeIn 0.6s ease-out forwards';
+                    }, 10);
+                } else if (imageFile) { // Fallback to local preview if server path not provided
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        const uploadedImg = document.createElement('img');
+                        uploadedImg.src = e.target.result;
+                        uploadedImg.alt = 'Uploaded Image';
+                        uploadedImg.style.opacity = '0';
+                        uploadedImg.style.transform = 'scale(0.8) translateY(20px)';
+                        imagePreviewDiv.appendChild(uploadedImg);
+                        imageDataUrl = e.target.result;
+                        
+                        // Trigger animation after image is added to DOM
+                        setTimeout(() => {
+                            uploadedImg.style.animation = 'imagePreviewFadeIn 0.6s ease-out forwards';
+                        }, 10);
+                        
+                        // Add to history after image is loaded
+                        if (historyManager) {
+                            historyManager.addItem(imageDataUrl, comment, 0);
+                        }
+                    }
+                    reader.readAsDataURL(imageFile);
+                }
+
+                // Use filtered image for history if available
+                if (imageFilterManager && imageFilterManager.originalImageData && imageFilterManager.currentFilter !== 'none') {
+                    imageDataUrl = imageFilterManager.getFilteredImageData();
+                }
+                
+                // Add to history if we have the image URL immediately
+                if (imageDataUrl && historyManager) {
+                    historyManager.addItem(imageDataUrl, comment, 0);
+                }
+
+                // Hide filter preview after successful upload
+                document.getElementById('filterPreview').style.display = 'none';
+
+                aiResponseContainer.style.display = 'block';
+                playSuccessSound();
+
+            } catch (error) {
+                console.error('Upload error:', error);
+                showEnhancedError(error.message);
+                playErrorSound();
+            } finally {
+                // Reset progress bar
+                updateProgress(0);
+                loadingIndicator.style.display = 'none';
+                submitBtn.disabled = false;
+                submitBtn.textContent = '開始面相分析！';
+                submitBtn.classList.remove('pulse-loading');
+                aiResponseDiv.classList.remove('loading'); // Remove loading class
+            }
+        };
+
+        // File size check and compression suggestion
+        async function checkFileSizeAndSuggestCompression(file) {
+            const maxSize = 5 * 1024 * 1024; // 5MB
+            const warningSize = 2 * 1024 * 1024; // 2MB
+            
+            if (file.size > maxSize) {
+                return new Promise((resolve) => {
+                    const fileSizeWarning = document.getElementById('fileSizeWarning');
+                    const fileSizeMessage = document.getElementById('fileSizeMessage');
+                    const compressBtn = document.getElementById('compressBtn');
+                    const continueBtn = document.getElementById('continueBtn');
+                    const cancelBtn = document.getElementById('cancelBtn');
+                    
+                    fileSizeMessage.textContent = `檔案大小為 ${(file.size / 1024 / 1024).toFixed(1)}MB，建議壓縮後再上傳以獲得更好的處理速度。`;
+                    fileSizeWarning.style.display = 'flex';
+                    
+                    compressBtn.onclick = async () => {
+                        fileSizeWarning.style.display = 'none';
+                        const compressedFile = await compressImage(file);
+                        const imageUpload = document.getElementById('imageUpload');
+                        const dt = new DataTransfer();
+                        dt.items.add(compressedFile);
+                        imageUpload.files = dt.files;
+                        resolve();
+                    };
+                    
+                    continueBtn.onclick = () => {
+                        fileSizeWarning.style.display = 'none';
+                        resolve();
+                    };
+                    
+                    cancelBtn.onclick = () => {
+                        fileSizeWarning.style.display = 'none';
+                        document.getElementById('imageUpload').value = '';
+                        resolve();
+                    };
+                });
+            } else if (file.size > warningSize) {
+                console.log(`檔案大小為 ${(file.size / 1024 / 1024).toFixed(1)}MB，建議考慮壓縮`);
+            }
+        }
+
+        // Image compression function
+        async function compressImage(file, quality = 0.7) {
+            return new Promise((resolve) => {
+                const canvas = document.createElement('canvas');
+                const ctx = canvas.getContext('2d');
+                const img = new Image();
+                
+                img.onload = () => {
+                    const maxWidth = 1920;
+                    const maxHeight = 1080;
+                    let { width, height } = img;
+                    
+                    if (width > maxWidth) {
+                        height = (height * maxWidth) / width;
+                        width = maxWidth;
+                    }
+                    if (height > maxHeight) {
+                        width = (width * maxHeight) / height;
+                        height = maxHeight;
+                    }
+                    
+                    canvas.width = width;
+                    canvas.height = height;
+                    ctx.drawImage(img, 0, 0, width, height);
+                    
+                    canvas.toBlob((blob) => {
+                        const compressedFile = new File([blob], file.name, {
+                            type: 'image/jpeg',
+                            lastModified: Date.now()
+                        });
+                        resolve(compressedFile);
+                    }, 'image/jpeg', quality);
+                };
+                
+                img.src = URL.createObjectURL(file);
+            });
+        }
+
+        // Progress bar functions
+        function updateProgress(percentage) {
+            const progressBar = document.getElementById('progressBar');
+            const progressText = document.getElementById('progressText');
+            if (progressBar && progressText) {
+                progressBar.style.width = percentage + '%';
+                progressText.textContent = Math.round(percentage) + '%';
+            }
+        }
+
+        function simulateProgress() {
+            let progress = 0;
+            const interval = setInterval(() => {
+                progress += Math.random() * 15;
+                if (progress >= 90) {
+                    progress = 90;
+                    clearInterval(interval);
+                }
+                updateProgress(progress);
+            }, 200);
+            
+            // Complete progress when response is received
+            setTimeout(() => {
+                updateProgress(100);
+                setTimeout(() => updateProgress(0), 1000);
+            }, 3000);
+        }
+
+        // Enhanced error handling
+        function getDetailedErrorMessage(status, originalError) {
+            const errorMessages = {
+                400: '請求格式錯誤，請檢查上傳的圖片格式',
+                401: '認證失敗，請重新整理頁面',
+                403: '權限不足，無法處理此請求',
+                404: '服務暫時無法使用，請稍後再試',
+                413: '圖片檔案過大，請壓縮後再試',
+                429: '請求過於頻繁，請稍後再試',
+                500: '伺服器內部錯誤，請稍後再試',
+                502: '服務暫時無法連接，請檢查網路連線',
+                503: '服務暫時維護中，請稍後再試'
+            };
+            
+            return errorMessages[status] || originalError || '未知錯誤，請稍後再試';
+        }
+
+        function showEnhancedError(message) {
+            const errorDisplay = document.getElementById('errorDisplay');
+            const suggestions = {
+                '圖片檔案過大': '建議：壓縮圖片或選擇較小的檔案',
+                '請求過於頻繁': '建議：請等待幾秒鐘後再試',
+                '服務暫時無法使用': '建議：檢查網路連線或稍後再試',
+                '認證失敗': '建議：重新整理頁面後再試',
+                '權限不足': '建議：確認您有上傳圖片的權限'
+            };
+            
+            let suggestion = '';
+            for (const [key, value] of Object.entries(suggestions)) {
+                if (message.includes(key)) {
+                    suggestion = value;
+                    break;
+                }
+            }
+            
+            errorDisplay.innerHTML = `
+                <div class="error-title">
+                    ❌ ${message}
+                </div>
+                ${suggestion ? `<div class="error-suggestion">${suggestion}</div>` : ''}
+            `;
+            errorDisplay.style.display = 'block';
+            
+            // Auto hide after 8 seconds
+            setTimeout(() => {
+                errorDisplay.style.display = 'none';
+            }, 8000);
+        }
+
+        // Dynamic color theme functionality
+        function extractDominantColor(imageElement) {
+            return new Promise((resolve) => {
+                const canvas = document.createElement('canvas');
+                const ctx = canvas.getContext('2d');
+                
+                canvas.width = imageElement.naturalWidth;
+                canvas.height = imageElement.naturalHeight;
+                
+                ctx.drawImage(imageElement, 0, 0);
+                
+                const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                const data = imageData.data;
+                
+                const colorCounts = {};
+                const step = 4; // Sample every 4th pixel for performance
+                
+                for (let i = 0; i < data.length; i += step * 4) {
+                    const r = data[i];
+                    const g = data[i + 1];
+                    const b = data[i + 2];
+                    const alpha = data[i + 3];
+                    
+                    if (alpha > 128) { // Only count non-transparent pixels
+                        const key = `${Math.floor(r/32)*32},${Math.floor(g/32)*32},${Math.floor(b/32)*32}`;
+                        colorCounts[key] = (colorCounts[key] || 0) + 1;
+                    }
+                }
+                
+                let dominantColor = '128,128,128'; // Default gray
+                let maxCount = 0;
+                
+                for (const color in colorCounts) {
+                    if (colorCounts[color] > maxCount) {
+                        maxCount = colorCounts[color];
+                        dominantColor = color;
+                    }
+                }
+                
+                resolve(dominantColor.split(',').map(Number));
+            });
+        }
+        
+        function determineThemeFromColor(rgb) {
+            const [r, g, b] = rgb;
+            const brightness = (r * 299 + g * 587 + b * 114) / 1000;
+            const saturation = Math.max(r, g, b) - Math.min(r, g, b);
+            
+            // Determine theme based on color characteristics
+            if (r > g && r > b && saturation > 50) {
+                return brightness > 150 ? 'theme-warm' : 'theme-sunset';
+            } else if (b > r && b > g && saturation > 50) {
+                return brightness > 150 ? 'theme-cool' : 'theme-ocean';
+            } else if (g > r && g > b && saturation > 50) {
+                return 'theme-nature';
+            } else if (saturation < 30) {
+                return 'theme-cool'; // Default for low saturation
+            } else {
+                return 'theme-warm'; // Default fallback
+            }
+        }
+        
+        function applyDynamicTheme(themeClass) {
+            // Remove existing theme classes
+            document.body.classList.remove('theme-warm', 'theme-cool', 'theme-nature', 'theme-sunset', 'theme-ocean');
+            
+            // Apply new theme with a slight delay for smooth transition
+            setTimeout(() => {
+                document.body.classList.add(themeClass);
+            }, 100);
+        }
+        
+        function analyzeImageAndApplyTheme(imageElement) {
+            extractDominantColor(imageElement)
+                .then(dominantColor => {
+                    const themeClass = determineThemeFromColor(dominantColor);
+                    applyDynamicTheme(themeClass);
+                })
+                .catch(error => {
+                    console.log('Color analysis failed, using default theme:', error);
+                });
+        }
+
+        // File size warning event listeners
+        document.addEventListener('DOMContentLoaded', () => {
+            // Initialize file size warning event listeners if not already done
+            const fileSizeWarning = document.getElementById('fileSizeWarning');
+            if (fileSizeWarning) {
+                fileSizeWarning.addEventListener('click', (e) => {
+                    if (e.target === fileSizeWarning) {
+                        fileSizeWarning.style.display = 'none';
+                        document.getElementById('imageUpload').value = '';
+                    }
+                });
+            }
+        });
+    </script>
+</body>
+</html>
+
+<style>
+    #aiResponseContainer {
+        margin-top: 30px;
+        width: 100%;
+        text-align: left; /* Align headers to left for better structure */
+    }
+
+    #aiResponseContainer h2 {
+        color: #e83e8c; /* Match title color */
+        font-size: 1.5em;
+        margin-bottom: 10px;
+        text-align: center; /* Center subheadings */
+    }
+
+    .image-preview-container {
+        margin-top: 15px;
+        margin-bottom: 25px; /* Add some space below image previews */
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        min-height: 100px; /* Ensure space even if image fails to load */
+        background-color: #fff9fb; /* Very light pink background for preview areas */
+        border-radius: 10px;
+        padding: 10px;
+        border: 1px dashed #ffdae5; /* Light pink dashed border */
+    }
+
+    #imagePreview img {
+        max-width: 100%;
+        max-height: 300px;
+        border-radius: 10px; /* Consistent rounded corners */
+        /* border: 3px solid #ffc1d6; // Removed as container has border now */
+        box-shadow: 0 4px 10px rgba(0,0,0,0.08);
+        opacity: 0;
+        transform: scale(0.8);
+        animation: imagePreviewFadeIn 0.6s ease-out forwards;
+    }
+
+    @keyframes imagePreviewFadeIn {
+        0% {
+            opacity: 0;
+            transform: scale(0.8) translateY(20px);
+        }
+        100% {
+            opacity: 1;
+            transform: scale(1) translateY(0);
+        }
+    }
+
+    #aiResponse {
+        font-size: 1em;
+        padding: 15px;
+    }
+</style>
