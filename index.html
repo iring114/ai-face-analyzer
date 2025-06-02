@@ -565,6 +565,50 @@
             transform: scale(1.05);
         }
 
+        /* Action Buttons Styles */
+        .action-buttons {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .retry-btn, .try-again-btn {
+            background: linear-gradient(45deg, #4fc3f7 0%, #29b6f6 100%);
+            color: white;
+            padding: 12px 25px;
+            border: none;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 1em;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 10px rgba(79, 195, 247, 0.4);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .retry-btn:hover, .try-again-btn:hover {
+            transform: translateY(-2px) scale(1.05);
+            box-shadow: 0 6px 15px rgba(79, 195, 247, 0.6);
+            background: linear-gradient(45deg, #29b6f6 0%, #1e88e5 100%);
+        }
+
+        .retry-btn:active, .try-again-btn:active {
+            transform: translateY(0px) scale(0.95);
+            box-shadow: 0 2px 5px rgba(79, 195, 247, 0.4);
+        }
+
+        .try-again-btn {
+            background: linear-gradient(45deg, #66bb6a 0%, #4caf50 100%);
+            box-shadow: 0 4px 10px rgba(102, 187, 106, 0.4);
+        }
+
+        .try-again-btn:hover {
+            background: linear-gradient(45deg, #4caf50 0%, #388e3c 100%);
+            box-shadow: 0 6px 15px rgba(102, 187, 106, 0.6);
+        }
+
         .history-list {
             max-height: 300px;
             overflow-y: auto;
@@ -1068,6 +1112,17 @@
             object-fit: contain; /* Ensure image aspect ratio is maintained */
         }
 
+        /* Fix for uploaded image display */
+        #imagePreview img {
+            max-width: 100%;
+            max-height: 400px;
+            object-fit: contain !important; /* Prevent cropping */
+            border-radius: 10px;
+            display: block;
+            margin: 0 auto;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+
         #aiComment {
             background-color: #e6fff2; /* Slightly more vibrant mint green */
             padding: 25px;
@@ -1110,6 +1165,39 @@
             animation: spin 1s linear infinite;
             margin: 25px auto;
             display: none;
+        }
+
+        /* Improved loading overlay */
+        .loader {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(255, 255, 255, 0.95);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+            backdrop-filter: blur(2px);
+        }
+
+        .loading-content {
+            text-align: center;
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        }
+
+        .spinner {
+            width: 50px;
+            height: 50px;
+            border: 5px solid #fce4ec;
+            border-top: 5px solid #e91e63;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
         }
 
         @keyframes spin {
@@ -1961,6 +2049,12 @@
             <h2>🔍 AI 專業面相分析：</h2>
             <div id="aiResponse" class="ai-comment-box"></div>
             
+            <!-- Action Buttons -->
+            <div class="action-buttons" style="margin: 20px 0; text-align: center;">
+                <button id="retryBtn" class="retry-btn" onclick="resetAnalysis()">🔄 重新選擇圖片</button>
+                <button id="tryAgainBtn" class="try-again-btn" onclick="tryAgain()" style="display: none;">🎯 再試一次</button>
+            </div>
+            
             <!-- Rating System -->
             <div id="ratingSection" class="rating-section" style="display: none;">
                 <h3>⭐ 分析滿意度評分：</h3>
@@ -2796,6 +2890,8 @@
                 setTimeout(() => {
                     document.getElementById('ratingSection').style.display = 'block';
                     document.getElementById('shareSection').style.display = 'block';
+                    // Show "Try Again" button after analysis is complete
+                    document.getElementById('tryAgainBtn').style.display = 'inline-block';
                 }, comment.length * 50 + 1000); // Delay based on comment length
                 
                 // Display uploaded image preview
@@ -3219,6 +3315,120 @@
                     }
                 }, 300);
             }, 3000);
+        }
+
+        // Reset analysis function - clears everything and goes back to initial state
+        function resetAnalysis() {
+            // Clear file input
+            document.getElementById('imageUpload').value = '';
+            
+            // Reset file name display
+            document.getElementById('fileName').textContent = '尚未選擇任何檔案';
+            
+            // Clear image preview
+            imagePreviewDiv.innerHTML = '';
+            imagePreviewDiv.style.display = 'none';
+            
+            // Hide AI response container
+            aiResponseContainer.style.display = 'none';
+            
+            // Clear AI response
+            aiResponseDiv.textContent = '';
+            aiResponseDiv.classList.remove('loading');
+            
+            // Hide rating and share sections
+            document.getElementById('ratingSection').style.display = 'none';
+            document.getElementById('shareSection').style.display = 'none';
+            
+            // Hide action buttons
+            document.getElementById('tryAgainBtn').style.display = 'none';
+            
+            // Reset submit button
+            submitBtn.disabled = true;
+            submitBtn.textContent = '開始面相分析！';
+            submitBtn.classList.remove('pulse-loading');
+            
+            // Hide loading indicator
+            loadingIndicator.style.display = 'none';
+            
+            // Hide error display
+            hideError();
+            
+            // Reset progress
+            updateProgress(0);
+            
+            // Reset rating
+            currentRating = 0;
+            updateStars(0);
+            updateRatingText(0);
+            
+            // Reset theme to default
+            document.body.className = document.body.className.replace(/theme-\w+/g, '');
+            
+            // Show notification
+            showNotification('已重置，請重新選擇圖片', 'info');
+        }
+
+        // Try again function - keeps the same image but re-runs analysis
+        function tryAgain() {
+            const imageFile = document.getElementById('imageUpload').files[0];
+            
+            if (!imageFile) {
+                showNotification('請先選擇一張圖片', 'error');
+                return;
+            }
+            
+            // Clear previous results but keep the image
+            aiResponseDiv.textContent = '';
+            aiResponseDiv.classList.remove('loading');
+            aiResponseContainer.style.display = 'none';
+            
+            // Hide rating and share sections
+            document.getElementById('ratingSection').style.display = 'none';
+            document.getElementById('shareSection').style.display = 'none';
+            
+            // Hide action buttons
+            document.getElementById('tryAgainBtn').style.display = 'none';
+            
+            // Reset rating
+            currentRating = 0;
+            updateStars(0);
+            updateRatingText(0);
+            
+            // Hide error display
+            hideError();
+            
+            // Create form data and submit again
+            const formData = new FormData();
+            formData.append('image', imageFile);
+            
+            // Get current style and language settings
+            const styleSelect = document.getElementById('styleSelect');
+            const languageSelect = document.getElementById('languageSelect');
+            
+            if (styleSelect && styleSelect.value) {
+                formData.append('style', styleSelect.value);
+            }
+            if (languageSelect && languageSelect.value) {
+                formData.append('language', languageSelect.value);
+            }
+            
+            // Add style prompt if available
+            const stylePrompts = {
+                'professional': '請以專業心理學角度分析',
+                'cute': '請用可愛活潑的語氣分析',
+                'mystical': '請以神秘玄學的角度分析',
+                'scientific': '請以科學客觀的方式分析',
+                'friendly': '請用親切友善的語氣分析'
+            };
+            
+            const currentStyle = styleSelect ? styleSelect.value : 'professional';
+            const stylePrompt = stylePrompts[currentStyle] || stylePrompts['professional'];
+            formData.append('stylePrompt', stylePrompt);
+            
+            // Show notification and submit
+            showNotification('重新分析中...', 'info');
+            submitFormData(formData);
         }
     </script>
 </body>
