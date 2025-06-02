@@ -155,7 +155,7 @@ function fileToGenerativePart(filePath, mimeType) {
 app.use(express.urlencoded({ extended: true })); // Parse URL-encoded bodies
 app.use(express.json()); // Parse JSON bodies
 app.use(express.static(path.join(__dirname))); // Serve static files from root (for index.html)
-app.use('/uploads', express.static(UPLOADS_DIR)); // Serve uploaded images (if needed for direct access)
+// app.use('/uploads', express.static(UPLOADS_DIR)); // Serve uploaded images (if needed for direct access) - Removed as GCS is used
 
 app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'index.html'));
