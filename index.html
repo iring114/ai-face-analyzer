@@ -2830,6 +2830,11 @@
                         formData.append('language', advancedSettings.currentLanguage);
                         formData.append('stylePrompt', advancedSettings.getStylePrompt());
                     }
+                    // Add reanalysis parameters if available
+                    if (window.currentAnalysisId) {
+                        formData.append('isReanalysis', 'true');
+                        formData.append('analysisId', window.currentAnalysisId);
+                    }
                     submitFormData(formData);
                 }, 'image/jpeg', 1.0);
                 return; // Exit early since we're handling async
@@ -2840,6 +2845,11 @@
                     formData.append('style', advancedSettings.currentStyle);
                     formData.append('language', advancedSettings.currentLanguage);
                     formData.append('stylePrompt', advancedSettings.getStylePrompt());
+                }
+                // Add reanalysis parameters if available
+                if (window.currentAnalysisId) {
+                    formData.append('isReanalysis', 'true');
+                    formData.append('analysisId', window.currentAnalysisId);
                 }
             }
             
@@ -2870,11 +2880,24 @@
 
                 if (!response.ok) {
                     const errorData = await response.json().catch(() => ({ error: '伺服器錯誤，無法解析回應。' }));
+                    
+                    // Handle quota exceeded error specifically
+                    if (response.status === 429 && errorData.quotaExceeded) {
+                        showError(errorData.error || 'API配額已達上限，請稍後再試。');
+                        return;
+                    }
+                    
                     const errorMessage = getDetailedErrorMessage(response.status, errorData.error);
                     throw new Error(errorMessage);
                 }
 
                 const result = await response.json();
+                
+                // Store analysis ID for reanalysis
+                if (result.analysisId) {
+                    window.currentAnalysisId = result.analysisId;
+                    console.log('Analysis ID stored:', window.currentAnalysisId);
+                }
                 
                 // Typewriter effect for AI comment
                 const comment = result.aiComment || 'AI 今天詞窮了...';
