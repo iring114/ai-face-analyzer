@@ -17,13 +17,12 @@
   "author": "AI Assistant",
   "license": "ISC",
   "dependencies": {
-    "@google/generative-ai": "^0.1.0",
-    "ai-face-analyzer": "file:",
-    "aws-sdk": "^2.1692.0",
-    "dotenv": "^16.0.0",
-    "express": "^4.17.1",
-    "gemini-image-roast-app": "file:",
+    "@google-cloud/storage": "^7.16.0",
+    "@google/generative-ai": "^0.21.0",
+    "dotenv": "^16.4.5",
+    "express": "^4.21.1",
     "multer": "^1.4.5-lts.1",
-    "uuid": "^11.1.0"
+    "pg": "^8.13.1",
+    "uuid": "^11.0.3"
   }
 }

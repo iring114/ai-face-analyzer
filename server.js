@@ -2,10 +2,13 @@ const express = require('express');
 const { GoogleGenerativeAI, HarmCategory, HarmBlockThreshold, Modality } = require("@google/generative-ai");
 const multer = require('multer');
 const fs = require('fs');
-const AWS = require('aws-sdk');
+// Google Cloud Storage
+const { Storage } = require('@google-cloud/storage');
 const { v4: uuidv4 } = require('uuid');
 const path = require('path');
 const dotenv = require('dotenv');
+// 新增 PostgreSQL 客戶端
+const { Pool } = require('pg');
 
 const app = express();
 const port = process.env.PORT || 3000;
@@ -13,51 +16,91 @@ const port = process.env.PORT || 3000;
 // --- Configuration ---
 dotenv.config();
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
-// TODO: Add your Text-to-Image API Key here in .env and uncomment
-// const TEXT_TO_IMAGE_API_KEY = process.env.TEXT_TO_IMAGE_API_KEY;
+const GCS_BUCKET_NAME = process.env.GCS_BUCKET_NAME;
+const GOOGLE_APPLICATION_CREDENTIALS = process.env.GOOGLE_APPLICATION_CREDENTIALS;
 
-const AWS_ACCESS_KEY_ID = process.env.AWS_ACCESS_KEY_ID;
-const AWS_SECRET_ACCESS_KEY = process.env.AWS_SECRET_ACCESS_KEY;
-const AWS_S3_BUCKET_NAME = process.env.AWS_S3_BUCKET_NAME;
-const AWS_S3_REGION = process.env.AWS_S3_REGION;
+// Google Cloud Storage 設定
+const storage = new Storage({
+    projectId: process.env.GOOGLE_CLOUD_PROJECT_ID,
+    keyFilename: GOOGLE_APPLICATION_CREDENTIALS, // 服務帳戶金鑰檔案路徑
+});
+const bucket = storage.bucket(GCS_BUCKET_NAME);
 
-if (!GEMINI_API_KEY || !AWS_ACCESS_KEY_ID || !AWS_SECRET_ACCESS_KEY || !AWS_S3_BUCKET_NAME || !AWS_S3_REGION) {
-    console.error("Error: Missing one or more required environment variables (GEMINI_API_KEY, AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_S3_BUCKET_NAME, AWS_S3_REGION).");
-    process.exit(1);
-}
-
-// --- AWS S3 Setup ---
-const s3 = new AWS.S3({
-    accessKeyId: AWS_ACCESS_KEY_ID,
-    secretAccessKey: AWS_SECRET_ACCESS_KEY,
-    region: AWS_S3_REGION
+// PostgreSQL 連接設定
+const pool = new Pool({
+    connectionString: process.env.DATABASE_URL,
+    ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false
 });
 
+// 檢查必要的環境變數
 if (!GEMINI_API_KEY) {
-    console.error("Error: GEMINI_API_KEY is not set in .env file.");
+    console.error("Error: Missing GEMINI_API_KEY environment variable.");
     process.exit(1);
 }
 
-// --- Multer Setup for Image Uploads ---
-const UPLOADS_DIR = path.join(__dirname, 'uploads');
-if (!fs.existsSync(UPLOADS_DIR)) {
-    fs.mkdirSync(UPLOADS_DIR, { recursive: true });
+if (!GCS_BUCKET_NAME) {
+    console.error("Error: Missing GCS_BUCKET_NAME environment variable.");
+    process.exit(1);
 }
 
-// const storage = multer.diskStorage({ // Changed to memoryStorage for S3 upload
-//     destination: (req, file, cb) => {
-//         cb(null, UPLOADS_DIR);
-//     },
-//     filename: (req, file, cb) => {
-//         const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-//         cb(null, file.fieldname + '-' + uniqueSuffix + path.extname(file.originalname));
-//     }
-// });
-const storage = multer.memoryStorage(); // Store files in memory for S3 upload
+// 測試資料庫連接並創建表
+pool.connect(async (err, client, release) => {
+    if (err) {
+        console.error('Error connecting to PostgreSQL:', err);
+        process.exit(1);
+    } else {
+        console.log('Connected to PostgreSQL database');
+        
+        // 創建或更新face_analyses表
+        try {
+            const createTableQuery = `
+                CREATE TABLE IF NOT EXISTS face_analyses (
+                    id SERIAL PRIMARY KEY,
+                    image_data TEXT,
+                    image_name VARCHAR(255),
+                    mime_type VARCHAR(100),
+                    gcs_url TEXT,
+                    ai_comment TEXT,
+                    style_prompt TEXT,
+                    language VARCHAR(10) DEFAULT 'zh',
+                    style VARCHAR(50) DEFAULT 'mild',
+                    created_at TIMESTAMP DEFAULT NOW(),
+                    updated_at TIMESTAMP DEFAULT NOW()
+                )
+            `;
+            
+            await client.query(createTableQuery);
+            console.log('Face analyses table created or verified');
+            
+            // 檢查並添加新欄位（如果不存在）
+            const alterTableQueries = [
+                "ALTER TABLE face_analyses ADD COLUMN IF NOT EXISTS gcs_url TEXT",
+                "ALTER TABLE face_analyses ADD COLUMN IF NOT EXISTS style VARCHAR(50) DEFAULT 'mild'",
+                "ALTER TABLE face_analyses ADD COLUMN IF NOT EXISTS created_at TIMESTAMP DEFAULT NOW()",
+                "ALTER TABLE face_analyses ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP DEFAULT NOW()"
+            ];
+            
+            for (const query of alterTableQueries) {
+                await client.query(query);
+            }
+            
+            console.log('Database schema updated successfully');
+        } catch (dbError) {
+            console.error('Error setting up database schema:', dbError);
+        }
+        
+        release();
+    }
+});
 
+// 移除AWS S3設定
+// const s3 = new AWS.S3({...});
+
+// Multer設定保持不變
+const multerStorage = multer.memoryStorage();
 const upload = multer({
-    storage: storage,
-    limits: { fileSize: 10 * 1024 * 1024 }, // 10MB limit
+    storage: multerStorage,
+    limits: { fileSize: 10 * 1024 * 1024 },
     fileFilter: (req, file, cb) => {
         const allowedTypes = /jpeg|jpg|png/;
         const mimetype = allowedTypes.test(file.mimetype);
@@ -123,48 +166,67 @@ app.post('/upload', upload.single('image'), async (req, res) => {
         return res.status(400).json({ error: 'No image file uploaded.' });
     }
 
-    // const imagePath = req.file.path; // File is in memory (req.file.buffer)
     const mimeType = req.file.mimetype;
     const originalName = req.file.originalname;
     const stylePrompt = req.body.stylePrompt || "請專業分析這張人像照片的面部特徵與可能的性格特質";
     const language = req.body.language || 'zh';
-
-    const s3FileName = `${uuidv4()}-${originalName}`;
-
-    console.log(`[Upload] Image received in memory: ${originalName}, MIME type: ${mimeType}`);
-    console.log(`[Upload] Style: ${req.body.style}, Language: ${language}`);
-    console.log(`[S3 Upload] Attempting to upload to S3 bucket: ${AWS_S3_BUCKET_NAME} as ${s3FileName}`);
+    const style = req.body.style || 'mild';
+    const isReanalysis = req.body.isReanalysis === 'true';
+    
+    console.log(`[Upload] Image received: ${originalName}, MIME type: ${mimeType}`);
+    console.log(`[Upload] Style: ${style}, Language: ${language}, IsReanalysis: ${isReanalysis}`);
 
     try {
-        // Upload to S3
-        const s3UploadParams = {
-            Bucket: AWS_S3_BUCKET_NAME,
-            Key: s3FileName,
-            Body: req.file.buffer,
-            ContentType: mimeType,
-            // ACL: 'public-read' // Optional: if you want the file to be publicly readable by default
-        };
+        let gcsImageUrl = null;
+        let imageBase64 = req.file.buffer.toString('base64');
+        let analysisId = null;
 
-        const s3Data = await s3.upload(s3UploadParams).promise();
-        const s3ImageUrl = s3Data.Location;
-        console.log(`[S3 Upload] Successfully uploaded to S3: ${s3ImageUrl}`);
+        // 如果不是重新分析，則上傳圖片到GCS並存儲到資料庫
+        if (!isReanalysis) {
+            // 上傳圖片到 Google Cloud Storage
+            const gcsFileName = `face-analysis/${uuidv4()}-${originalName}`;
+            const file = bucket.file(gcsFileName);
+            
+            console.log(`[GCS Upload] Uploading to: ${gcsFileName}`);
+            
+            await file.save(req.file.buffer, {
+                metadata: {
+                    contentType: mimeType,
+                },
+                public: true, // 設為公開可讀
+            });
+            
+            gcsImageUrl = `https://storage.googleapis.com/${GCS_BUCKET_NAME}/${gcsFileName}`;
+            console.log(`[GCS Upload] Successfully uploaded: ${gcsImageUrl}`);
 
-        // Prepare image for Gemini API using the S3 URL or directly from buffer if preferred by API
-        // For Gemini, it's better to send the image data directly if possible, or ensure the S3 URL is accessible.
-        // Here, we'll use the buffer directly as fileToGenerativePart expects a local path or buffer.
-        // To use S3 URL with Gemini, you'd need to ensure Gemini can fetch from that URL.
-        // For simplicity and directness, we'll use the buffer for Gemini.
+            // 首次上傳時存儲圖片資訊到資料庫（不包含AI分析）
+            const insertImageQuery = `
+                INSERT INTO face_analyses (image_data, image_name, mime_type, gcs_url, created_at)
+                VALUES ($1, $2, $3, $4, NOW())
+                RETURNING id
+            `;
+            
+            const imageValues = [imageBase64, originalName, mimeType, gcsImageUrl];
+            const imageResult = await pool.query(insertImageQuery, imageValues);
+            analysisId = imageResult.rows[0].id;
+            
+            console.log(`[Database] Image saved with ID: ${analysisId}`);
+        } else {
+            // 重新分析時，從請求中獲取分析ID
+            analysisId = req.body.analysisId;
+            if (!analysisId) {
+                return res.status(400).json({ error: 'Analysis ID is required for reanalysis.' });
+            }
+        }
+
+        // 執行AI分析
         const imagePart = {
             inlineData: {
-                data: req.file.buffer.toString("base64"),
+                data: imageBase64,
                 mimeType
             },
         };
-        // Or, if you want to use the S3 URL and ensure Gemini can access it:
-        // const imagePart = { externalData: { uri: s3ImageUrl, mimeType } };
-        // Make sure your S3 bucket policy allows Gemini to access the image if using externalData.
         
-        // Use the style prompt from frontend with language-specific base prompt
         const basePrompts = {
             'zh': '你是一位專業的面相分析師，擅長通過觀察人的面部特徵來分析性格特質和個人特色。',
             'en': 'You are a professional physiognomy analyst who excels at analyzing personality traits and personal characteristics through facial features.',
@@ -191,21 +253,38 @@ app.post('/upload', upload.single('image'), async (req, res) => {
         const aiComment = result.response.text();
         console.log("[AI Comment] Generated: ", aiComment);
 
-        // Image generation based on AI comment is removed.
-
-        // Optional: Delete the uploaded file after processing
-        // No local file to delete as it was in memory
+        // 更新資料庫中的AI分析結果
+        const updateQuery = `
+            UPDATE face_analyses 
+            SET ai_comment = $1, style_prompt = $2, language = $3, style = $4, updated_at = NOW()
+            WHERE id = $5
+        `;
+        
+        const updateValues = [aiComment, stylePrompt, language, style, analysisId];
+        await pool.query(updateQuery, updateValues);
+        
+        console.log(`[Database] Analysis updated for ID: ${analysisId}`);
 
         res.json({ 
-            message: 'Image processed successfully and uploaded to S3!', 
+            message: isReanalysis ? 'Image reanalyzed successfully!' : 'Image processed successfully and uploaded to GCS!', 
             aiComment: aiComment,
-            uploadedImageUrl: s3ImageUrl // Return the S3 URL
+            analysisId: analysisId,
+            imageData: `data:${mimeType};base64,${imageBase64}`,
+            gcsUrl: gcsImageUrl
         });
 
     } catch (error) {
-        console.error("[Upload] Error processing image with Gemini API:", error);
-        // No local file to delete
-        res.status(500).json({ error: 'Failed to process image with AI or upload to S3. ' + error.message });
+        console.error("[Upload] Error processing image:", error);
+        
+        // 檢查是否為配額超限錯誤
+        if (error.message && error.message.includes('quota')) {
+            res.status(429).json({ 
+                error: 'API配額已達上限，請稍後再試。建議：1. 等待一段時間後重試 2. 檢查您的Google Cloud配額設定', 
+                quotaExceeded: true 
+            });
+        } else {
+            res.status(500).json({ error: 'Failed to process image with AI or upload to GCS. ' + error.message });
+        }
     }
 });
 
