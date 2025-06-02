@@ -193,7 +193,7 @@ app.post('/upload', upload.single('image'), async (req, res) => {
                 metadata: {
                     contentType: mimeType,
                 },
-                public: true, // 設為公開可讀
+                // 移除 public: true，因為統一存儲桶級訪問權限不允許設置ACL
             });
             
             gcsImageUrl = `https://storage.googleapis.com/${GCS_BUCKET_NAME}/${gcsFileName}`;
