@@ -170,6 +170,104 @@ app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'index.html'));
 });
 
+// Upload endpoint for matching analysis
+app.post('/upload-matching', upload.fields([{ name: 'image1', maxCount: 1 }, { name: 'image2', maxCount: 1 }]), async (req, res) => {
+    try {
+        if (!req.files || !req.files.image1 || !req.files.image2) {
+            return res.status(400).json({ error: '請上傳兩張圖片' });
+        }
+
+        const image1 = req.files.image1[0];
+        const image2 = req.files.image2[0];
+        const { analysisType = 'matching', style = 'romantic', language = 'zh', stylePrompt } = req.body;
+
+        console.log('Processing matching analysis for two images:', image1.originalname, image2.originalname);
+
+        // Convert images to base64
+        const image1Base64 = image1.buffer.toString('base64');
+        const image2Base64 = image2.buffer.toString('base64');
+
+        // Create prompt for matching analysis
+        let prompt = `請分析這兩張面相照片，進行配對分析。請用繁體中文回答，包含以下內容：
+
+1. 兩人的面相特徵分析
+2. 性格相容性評估
+3. 感情運勢預測
+4. 配對指數（1-100分）
+5. 關係建議
+
+請以溫馨、專業的語調回答，避免過於迷信的內容。`;
+
+        if (stylePrompt) {
+            prompt = stylePrompt;
+        }
+
+        // Call Google Generative AI
+        const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+        
+        const result = await model.generateContent([
+            prompt,
+            {
+                inlineData: {
+                    data: image1Base64,
+                    mimeType: image1.mimetype
+                }
+            },
+            {
+                inlineData: {
+                    data: image2Base64,
+                    mimeType: image2.mimetype
+                }
+            }
+        ]);
+
+        const response = await result.response;
+        const aiComment = response.text();
+
+        // Save to database
+        const query = `
+            INSERT INTO face_analyses (image_data, ai_comment, analysis_type, created_at) 
+            VALUES ($1, $2, $3, NOW()) 
+            RETURNING id
+        `;
+        
+        // For matching analysis, we'll store both images as a JSON string
+        const imageData = JSON.stringify({
+            image1: image1Base64,
+            image2: image2Base64,
+            image1_name: image1.originalname,
+            image2_name: image2.originalname
+        });
+        
+        const dbResult = await pool.query(query, [imageData, aiComment, analysisType]);
+        
+        console.log('Matching analysis saved to database with ID:', dbResult.rows[0].id);
+
+        res.json({
+            success: true,
+            aiComment: aiComment,
+            analysisId: dbResult.rows[0].id,
+            analysisType: analysisType
+        });
+
+    } catch (error) {
+        console.error('Matching analysis error:', error);
+        
+        if (error.message && error.message.includes('overloaded')) {
+            res.status(503).json({ 
+                error: 'AI 服務暫時過載，請稍後再試',
+                details: error.message 
+            });
+        } else {
+            res.status(500).json({ 
+                error: '配對分析失敗，請稍後再試',
+                details: error.message 
+            });
+        }
+    }
+});
+
+// Upload endpoint
 app.post('/upload', upload.single('image'), async (req, res) => {
     if (!req.file) {
         return res.status(400).json({ error: 'No image file uploaded.' });
