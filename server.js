@@ -29,7 +29,7 @@ const bucket = storage.bucket(GCS_BUCKET_NAME);
 // PostgreSQL 連接設定
 const pool = new Pool({
     connectionString: process.env.DATABASE_URL,
-    ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false
+    ssl: { rejectUnauthorized: false } // 始終啟用 SSL 並接受自簽憑證，以連接 Render 資料庫
 });
 
 // 檢查必要的環境變數
@@ -87,6 +87,11 @@ pool.connect(async (err, client, release) => {
                 await client.query(addColumnQuery);
                 console.log('Added column analysis_type to face_analyses table.');
             }
+
+            // 在資料庫初始化完成後啟動伺服器
+            app.listen(port, () => {
+                console.log(`Server running at http://localhost:${port}`);
+            });
 
         } catch (dbError) {
             console.error('Error checking/creating table or adding column:', dbError);
@@ -313,9 +318,10 @@ app.post('/upload', upload.single('image'), async (req, res) => {
     }
 });
 
-// --- Server Start ---
-app.listen(port, () => {
-    console.log(`Server running at http://localhost:${port}`);
-});
-
 module.exports = app; // For testing or other integrations
+
+// --- Server Start ---
+// 將 app.listen 移動到資料庫連接成功後執行，確保資料庫初始化完成
+// app.listen(port, () => {
+//     console.log(`Server running at http://localhost:${port}`);
+// });
