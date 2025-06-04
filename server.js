@@ -51,45 +51,49 @@ pool.connect(async (err, client, release) => {
     } else {
         console.log('Connected to PostgreSQL database');
         
-        // 創建或更新face_analyses表
+        // 創建或更新face_analyses表並添加 analysis_type 欄位
         try {
             const createTableQuery = `
                 CREATE TABLE IF NOT EXISTS face_analyses (
                     id SERIAL PRIMARY KEY,
                     image_data TEXT,
                     image_name VARCHAR(255),
-                    mime_type VARCHAR(100),
+                    mime_type VARCHAR(255),
                     gcs_url TEXT,
                     ai_comment TEXT,
                     style_prompt TEXT,
-                    language VARCHAR(10) DEFAULT 'zh',
-                    style VARCHAR(50) DEFAULT 'mild',
-                    created_at TIMESTAMP DEFAULT NOW(),
-                    updated_at TIMESTAMP DEFAULT NOW()
-                )
+                    language VARCHAR(10),
+                    style VARCHAR(50),
+                    rating INTEGER,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                );
             `;
-            
             await client.query(createTableQuery);
-            console.log('Face analyses table created or verified');
-            
-            // 檢查並添加新欄位（如果不存在）
-            const alterTableQueries = [
-                "ALTER TABLE face_analyses ADD COLUMN IF NOT EXISTS gcs_url TEXT",
-                "ALTER TABLE face_analyses ADD COLUMN IF NOT EXISTS style VARCHAR(50) DEFAULT 'mild'",
-                "ALTER TABLE face_analyses ADD COLUMN IF NOT EXISTS created_at TIMESTAMP DEFAULT NOW()",
-                "ALTER TABLE face_analyses ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP DEFAULT NOW()"
-            ];
-            
-            for (const query of alterTableQueries) {
-                await client.query(query);
+            console.log('Table face_analyses checked/created successfully.');
+
+            // 檢查並添加 analysis_type 欄位
+            const checkColumnQuery = `
+                SELECT column_name
+                FROM information_schema.columns
+                WHERE table_name = 'face_analyses' AND column_name = 'analysis_type';
+            `;
+            const columnExists = await client.query(checkColumnQuery);
+
+            if (columnExists.rows.length === 0) {
+                const addColumnQuery = `
+                    ALTER TABLE face_analyses ADD COLUMN analysis_type VARCHAR(50) DEFAULT 'normal';
+                `;
+                await client.query(addColumnQuery);
+                console.log('Added column analysis_type to face_analyses table.');
             }
-            
-            console.log('Database schema updated successfully');
+
         } catch (dbError) {
-            console.error('Error setting up database schema:', dbError);
+            console.error('Error checking/creating table or adding column:', dbError);
+            process.exit(1);
+        } finally {
+            release();
         }
-        
-        release();
     }
 });
 
