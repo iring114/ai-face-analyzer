@@ -227,17 +227,38 @@ app.post('/upload', upload.single('image'), async (req, res) => {
             },
         };
         
-        const basePrompts = {
-            'zh': '你是一位專業的面相分析師，擅長通過觀察人的面部特徵來分析性格特質和個人特色。',
-            'en': 'You are a professional physiognomy analyst who excels at analyzing personality traits and personal characteristics through facial features.',
-            'ja': 'あなたは顔の特徴を通じて性格特性や個人的特徴を分析することに長けた専門的な人相分析師です。'
-        };
+        // Check if this is a fortune prediction request
+        const analysisType = req.body.analysisType || 'normal';
         
-        const endPrompts = {
-            'zh': '請用不超過 150 字進行專業的面像分析，包括：1.面部特徵描述 2.可能的性格特質 3.個人魅力點 4.建議的發展方向。語氣要專業但親切，給予正面積極的分析。',
-            'en': 'Please provide a professional physiognomy analysis in no more than 150 words, including: 1.Facial feature description 2.Possible personality traits 3.Personal charm points 4.Suggested development directions. Maintain a professional yet friendly tone with positive analysis.',
-            'ja': '150文字以内で専門的な人相分析を提供してください。含める内容：1.顔の特徴の説明 2.可能性のある性格特性 3.個人的な魅力ポイント 4.推奨される発展方向。専門的でありながら親しみやすい口調で、ポジティブな分析を行ってください。'
-        };
+        let basePrompts, endPrompts;
+        
+        if (analysisType === 'fortune') {
+            // Fortune prediction specific prompts
+            basePrompts = {
+                'zh': '你是一位資深的命理師和面相專家，擅長通過觀察面部特徵來預測運勢和未來發展。',
+                'en': 'You are an experienced fortune teller and physiognomy expert who excels at predicting fortune and future development through facial features.',
+                'ja': 'あなたは顔の特徴を通じて運勢や将来の発展を予測することに長けた経験豊富な占い師および人相専門家です。'
+            };
+            
+            endPrompts = {
+                'zh': '請用不超過 200 字進行運勢預測分析，包括：1.近期運勢概況 2.財運分析 3.感情運勢 4.事業發展 5.健康運勢 6.開運建議。語氣要神秘而專業，給予積極正面的預測。',
+                'en': 'Please provide a fortune prediction analysis in no more than 200 words, including: 1.Recent fortune overview 2.Financial luck analysis 3.Love fortune 4.Career development 5.Health fortune 6.Lucky advice. Maintain a mysterious yet professional tone with positive predictions.',
+                'ja': '200文字以内で運勢予測分析を提供してください。含める内容：1.近期運勢の概況 2.金運分析 3.恋愛運 4.事業発展 5.健康運 6.開運アドバイス。神秘的でありながら専門的な口調で、ポジティブな予測を行ってください。'
+            };
+        } else {
+            // Normal face analysis prompts
+            basePrompts = {
+                'zh': '你是一位專業的面相分析師，擅長通過觀察人的面部特徵來分析性格特質和個人特色。',
+                'en': 'You are a professional physiognomy analyst who excels at analyzing personality traits and personal characteristics through facial features.',
+                'ja': 'あなたは顔の特徴を通じて性格特性や個人的特徴を分析することに長けた専門的な人相分析師です。'
+            };
+            
+            endPrompts = {
+                'zh': '請用不超過 150 字進行專業的面像分析，包括：1.面部特徵描述 2.可能的性格特質 3.個人魅力點 4.建議的發展方向。語氣要專業但親切，給予正面積極的分析。',
+                'en': 'Please provide a professional physiognomy analysis in no more than 150 words, including: 1.Facial feature description 2.Possible personality traits 3.Personal charm points 4.Suggested development directions. Maintain a professional yet friendly tone with positive analysis.',
+                'ja': '150文字以内で専門的な人相分析を提供してください。含める内容：1.顔の特徴の説明 2.可能性のある性格特性 3.個人的な魅力ポイント 4.推奨される発展方向。専門的でありながら親しみやすい口調で、ポジティブな分析を行ってください。'
+            };
+        }
         
         const basePrompt = basePrompts[language] || basePrompts['zh'];
         const endPrompt = endPrompts[language] || endPrompts['zh'];
@@ -256,11 +277,11 @@ app.post('/upload', upload.single('image'), async (req, res) => {
         // 更新資料庫中的AI分析結果
         const updateQuery = `
             UPDATE face_analyses 
-            SET ai_comment = $1, style_prompt = $2, language = $3, style = $4, updated_at = NOW()
-            WHERE id = $5
+            SET ai_comment = $1, style_prompt = $2, language = $3, style = $4, analysis_type = $5, updated_at = NOW()
+            WHERE id = $6
         `;
         
-        const updateValues = [aiComment, stylePrompt, language, style, analysisId];
+        const updateValues = [aiComment, stylePrompt, language, style, analysisType, analysisId];
         await pool.query(updateQuery, updateValues);
         
         console.log(`[Database] Analysis updated for ID: ${analysisId}`);

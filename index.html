@@ -1759,6 +1759,61 @@
             font-size: 0.9em;
             font-weight: 500;
         }
+        
+        /* Special styling for fortune prediction */
+        .coming-soon-item:first-child {
+            background: linear-gradient(135deg, rgba(138, 43, 226, 0.2), rgba(75, 0, 130, 0.2));
+            border: 1px solid rgba(138, 43, 226, 0.4);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .coming-soon-item:first-child::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: linear-gradient(45deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+            transform: rotate(45deg);
+            animation: shimmer 3s infinite;
+        }
+        
+        @keyframes shimmer {
+            0% { transform: translateX(-100%) translateY(-100%) rotate(45deg); }
+            100% { transform: translateX(100%) translateY(100%) rotate(45deg); }
+        }
+        
+        .coming-soon-item:first-child:hover {
+            background: linear-gradient(135deg, rgba(138, 43, 226, 0.3), rgba(75, 0, 130, 0.3));
+            box-shadow: 0 5px 20px rgba(138, 43, 226, 0.4);
+        }
+        
+        /* Fortune prediction result styling */
+        .fortune-result {
+            background: linear-gradient(135deg, rgba(138, 43, 226, 0.1), rgba(75, 0, 130, 0.1));
+            border: 2px solid rgba(138, 43, 226, 0.3);
+            border-radius: 15px;
+            padding: 20px;
+            margin: 20px 0;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .fortune-result::before {
+            content: '🔮';
+            position: absolute;
+            top: 10px;
+            right: 15px;
+            font-size: 1.5em;
+            opacity: 0.6;
+        }
+        
+        .fortune-result .ai-comment {
+            color: #e6e6fa;
+            text-shadow: 0 0 10px rgba(138, 43, 226, 0.5);
+        }
 
         /* Mobile responsive for intro section */
         @media (max-width: 768px) {
@@ -3299,12 +3354,109 @@
                 comingSoonItems.forEach(item => {
                     item.addEventListener('click', () => {
                         const featureName = item.querySelector('span:last-child').textContent;
-                        showNotification(`${featureName} 功能即將推出，敬請期待！🚀`, 'info');
+                        
+                        // Special handler for fortune prediction
+                        if (featureName === '運勢預測') {
+                            handleFortunePredict();
+                        } else {
+                            showNotification(`${featureName} 功能即將推出，敬請期待！🚀`, 'info');
+                        }
                     });
                 });
             }
         });
 
+        // Fortune prediction function
+        async function handleFortunePredict() {
+            const imageFile = document.getElementById('imageUpload').files[0];
+            
+            if (!imageFile) {
+                showNotification('請先上傳一張照片才能進行運勢預測！📸', 'warning');
+                return;
+            }
+            
+            // Show loading state
+            loadingIndicator.style.display = 'block';
+            const originalText = submitBtn.textContent;
+            submitBtn.disabled = true;
+            submitBtn.textContent = '🔮 運勢預測中...';
+            submitBtn.classList.add('pulse-loading');
+            
+            // Clear previous results
+            aiResponseDiv.textContent = '';
+            aiResponseContainer.style.display = 'none';
+            hideError();
+            
+            // Start progress simulation
+            simulateProgress();
+            
+            try {
+                const formData = new FormData();
+                formData.append('image', imageFile);
+                formData.append('analysisType', 'fortune'); // Special flag for fortune prediction
+                formData.append('style', 'mystical');
+                formData.append('language', 'zh');
+                formData.append('stylePrompt', '請根據面相特徵進行運勢預測，包括近期運勢、財運、感情運、事業運和健康運勢的分析');
+                
+                const response = await fetch('/upload', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                if (!response.ok) {
+                    const errorData = await response.json().catch(() => ({ error: '伺服器錯誤，無法解析回應。' }));
+                    throw new Error(errorData.error || '運勢預測失敗，請稍後再試');
+                }
+                
+                const result = await response.json();
+                
+                // Display fortune prediction results
+                const fortuneComment = result.aiComment || '今日運勢神秘莫測...';
+                currentComment = `🔮 運勢預測：${fortuneComment}`; // Store for sharing
+                
+                // Show results with special fortune styling
+                aiResponseContainer.classList.add('fortune-result');
+                aiResponseContainer.style.display = 'block';
+                const responseHeader = aiResponseContainer.querySelector('h2');
+                responseHeader.textContent = '🔮 AI 運勢預測分析：';
+                
+                typewriterEffect(aiResponseDiv, fortuneComment);
+                
+                // Show action buttons
+                document.getElementById('retryBtn').style.display = 'inline-block';
+                document.getElementById('tryAgainBtn').style.display = 'inline-block';
+                
+                // Show rating and share sections
+                setTimeout(() => {
+                    document.getElementById('ratingSection').style.display = 'block';
+                    document.getElementById('shareSection').style.display = 'block';
+                }, 2000);
+                
+                // Add to history
+                if (historyManager) {
+                    historyManager.addAnalysis({
+                        type: 'fortune',
+                        image: imageFile,
+                        result: fortuneComment,
+                        timestamp: new Date().toISOString()
+                    });
+                }
+                
+                showNotification('🔮 運勢預測完成！', 'success');
+                
+            } catch (error) {
+                console.error('Fortune prediction error:', error);
+                showError(`運勢預測失敗：${error.message}`);
+            } finally {
+                // Reset loading state
+                loadingIndicator.style.display = 'none';
+                submitBtn.disabled = false;
+                submitBtn.textContent = originalText;
+                submitBtn.classList.remove('pulse-loading');
+                updateProgress(0);
+            }
+        }
+        
         // Notification function for coming soon features
         function showNotification(message, type = 'info') {
             const notification = document.createElement('div');
@@ -3354,6 +3506,7 @@
             
             // Hide AI response container
             aiResponseContainer.style.display = 'none';
+            aiResponseContainer.classList.remove('fortune-result'); // Remove fortune styling
             
             // Clear AI response
             aiResponseDiv.textContent = '';
