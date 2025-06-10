@@ -5,15 +5,18 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AI 面相分析器</title>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700&family=Poppins:wght@300;400;600&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Fredoka+One:wght@400&family=Nunito:wght@400;600;700;800&family=Comic+Neue:wght@400;700&display=swap');
 
         :root {
-            /* Default theme colors */
-            --primary-color: #e91e63;
-            --secondary-color: #ff9a9e;
-            --accent-color: #84fab0;
-            --background-gradient: linear-gradient(-45deg, #ee7752, #e73c7e, #23a6d5, #23d5ab);
-            --text-color: #444;
+            /* Powerpuff Girls theme colors */
+            --primary-color: #ff69b4;
+            --secondary-color: #ff1493;
+            --accent-color: #ffc0cb;
+            --blossom-pink: #ff69b4;
+            --bubbles-blue: #87ceeb;
+            --buttercup-green: #9acd32;
+            --background-gradient: linear-gradient(-45deg, #ff69b4, #ff1493, #ffc0cb, #ffb6c1);
+            --text-color: #2c3e50;
             
             /* Dynamic color theme variables */
             --dynamic-primary: var(--primary-color);
@@ -61,44 +64,185 @@
             --dynamic-gradient: linear-gradient(-45deg, #667eea, #764ba2, #42a5f5, #26c6da);
         }
         
-        /* Feature Tabs Styling */
-        .feature-tabs {
+        /* Powerpuff Girls Feature Navigation */
+        .powerpuff-feature-nav {
             display: flex;
             justify-content: center;
-            margin: 20px 0 30px 0;
-            background: rgba(255, 255, 255, 0.1);
-            border-radius: 25px;
-            padding: 5px;
-            backdrop-filter: blur(10px);
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
-        }
-        
-        .tab-btn {
-            flex: 1;
-            padding: 12px 20px;
-            border: none;
-            background: transparent;
-            color: #666;
-            font-size: 0.95em;
-            font-weight: 600;
-            border-radius: 20px;
-            cursor: pointer;
-            transition: all 0.3s ease;
+            align-items: center;
+            margin: 30px 0;
+            padding: 20px;
+            background: linear-gradient(135deg, #FFE4E6, #FFF0F5, #E6F3FF);
+            border-radius: 30px;
+            box-shadow: 0 8px 25px rgba(255, 105, 180, 0.3);
+            border: 3px solid var(--blossom-pink);
             position: relative;
             overflow: hidden;
+            animation: powerpuffGlow 3s ease-in-out infinite;
         }
         
-        .tab-btn:hover {
-            color: var(--dynamic-primary);
-            transform: translateY(-2px);
+        .powerpuff-feature-nav::before {
+            content: '✨';
+            position: absolute;
+            top: 10px;
+            left: 20px;
+            font-size: 20px;
+            animation: sparkleRotate 2s linear infinite;
+            z-index: 0; /* Ensure sparkles are behind characters */
         }
         
-        .tab-btn.active {
-            background: linear-gradient(45deg, var(--dynamic-primary), var(--dynamic-secondary));
+        .powerpuff-feature-nav::after {
+            content: '💫';
+            position: absolute;
+            bottom: 10px;
+            right: 20px;
+            font-size: 18px;
+            animation: sparkleRotate 2s linear infinite reverse;
+            z-index: 0; /* Ensure sparkles are behind characters */
+        }
+        
+        .feature-character {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 15px 20px;
+            margin: 0 10px;
+            border-radius: 20px;
+            cursor: pointer;
+            transition: all 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+            position: relative;
+            background: rgba(255, 255, 255, 0.7);
+            border: 2px solid transparent;
+            min-width: 100px;
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+            z-index: 1; /* Ensure characters are above pseudo-elements */
+        }
+        
+        .feature-text {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+            color: var(--text-color); /* Ensure default text color for non-active items */
+        }
+        
+        .feature-character:hover {
+            transform: translateY(-8px) scale(1.05);
+            box-shadow: 0 15px 30px rgba(255, 105, 180, 0.4);
+        }
+        
+        .feature-character.active {
+            background: linear-gradient(135deg, var(--blossom-pink), #FF69B4);
+            border-color: var(--blossom-pink);
+            color: white;
+            transform: translateY(-5px) scale(1.1);
+            box-shadow: 0 12px 25px rgba(255, 105, 180, 0.5);
+        }
+        
+        .feature-character.blossom {
+            border-color: var(--blossom-pink);
+        }
+        
+        .feature-character.blossom.active {
+            background: linear-gradient(135deg, var(--blossom-pink), #FF1493);
+        }
+        
+        .feature-character.bubbles {
+            border-color: var(--bubbles-blue);
+        }
+        
+        .feature-character.bubbles.active {
+            background: linear-gradient(135deg, var(--bubbles-blue), #00BFFF);
+        }
+        
+        .feature-character.buttercup {
+            border-color: var(--buttercup-green);
+        }
+        
+        .feature-character.buttercup.active {
+            background: linear-gradient(135deg, var(--buttercup-green), #32CD32);
+        }
+        
+        .feature-character.professor {
+            border-color: #9370DB;
+        }
+        
+        .feature-character.professor.active {
+            background: linear-gradient(135deg, #9370DB, #8A2BE2);
+        }
+        
+        .feature-character.mojo {
+            border-color: #FF4500;
+        }
+        
+        .feature-character.mojo.active {
+            background: linear-gradient(135deg, #FF4500, #FF6347);
+        }
+        
+        .character-icon {
+            font-size: 28px;
+            margin-bottom: 8px;
+            animation: iconBounce 2s ease-in-out infinite;
+        }
+        
+        .feature-name {
+            font-size: 14px;
+            font-weight: bold;
+            margin-bottom: 4px;
+            text-align: center;
+        }
+        
+        .character-name {
+            font-size: 11px;
+            opacity: 0.8;
+            font-style: italic;
+            text-align: center;
+        }
+        
+        @keyframes powerpuffGlow {
+            0%, 100% { box-shadow: 0 8px 25px rgba(255, 105, 180, 0.3); }
+            50% { box-shadow: 0 12px 35px rgba(255, 105, 180, 0.5); }
+        }
+        
+        @keyframes sparkleRotate {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        @keyframes iconBounce {
+            0%, 20%, 50%, 80%, 100% { transform: translateY(0); }
+            40% { transform: translateY(-5px); }
+            60% { transform: translateY(-3px); }
+        }
+        
+        @keyframes powerpuffActivate {
+            0% { transform: scale(1) rotate(0deg); }
+            25% { transform: scale(1.2) rotate(-5deg); }
+            50% { transform: scale(1.3) rotate(5deg); }
+            75% { transform: scale(1.1) rotate(-2deg); }
+            100% { transform: scale(1.1) rotate(0deg); }
+        }
+        
+        @keyframes containerFloat {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-10px); }
+        }
+        
+        @keyframes heartBeat {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.2); }
+        }
+        
+        @keyframes sparkle {
+            0%, 100% { opacity: 1; transform: scale(1) rotate(0deg); }
+            50% { opacity: 0.7; transform: scale(1.1) rotate(180deg); }
+        }
+/*
             color: white;
             box-shadow: 0 4px 15px rgba(233, 30, 99, 0.3);
             transform: translateY(-2px);
         }
+*/
         
         .tab-btn::before {
             content: '';
@@ -248,39 +392,98 @@
             .tab-btn {
                 margin: 2px 0;
             }
+            
+            /* Powerpuff Girls Feature Navigation Mobile */
+            .powerpuff-feature-nav {
+                flex-wrap: wrap;
+                padding: 15px;
+                margin: 20px 0;
+            }
+            
+            .feature-character {
+                min-width: 80px;
+                margin: 5px;
+                padding: 10px 15px;
+            }
+            
+            .character-icon {
+                font-size: 24px;
+            }
+            
+            .feature-name {
+                font-size: 12px;
+            }
+            
+            .character-name {
+                font-size: 10px;
+            }
         }
 
         body {
-            font-family: 'Poppins', 'Noto Sans TC', sans-serif;
+            font-family: 'Nunito', 'Comic Neue', sans-serif;
             background: var(--dynamic-gradient);
             background-size: 400% 400%;
-            animation: gradientBG 15s ease infinite;
-            /* background-image: url('https://www.transparenttextures.com/patterns/asfalt-light.png'); */ /* Example subtle pattern */
+            animation: gradientBG 15s ease infinite, floatingElements 20s ease-in-out infinite;
             display: flex;
-            position: relative; /* Needed for pseudo-element positioning */
+            position: relative;
             flex-direction: column;
             align-items: center;
             min-height: 100vh;
             margin: 0;
             padding: 10px;
             box-sizing: border-box;
-            color: var(--text-color); /* Slightly softer text color */
+            color: var(--text-color);
             transition: var(--theme-transition);
-            overflow-x: hidden; /* Prevent horizontal scroll from decorations */
+            overflow-x: hidden;
+        }
+        
+        /* Powerpuff Girls style floating elements */
+        body::before {
+            content: '✨💖🌟💫⭐';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            font-size: 2em;
+            color: rgba(255, 105, 180, 0.3);
+            pointer-events: none;
+            z-index: -1;
+            animation: sparkleFloat 25s linear infinite;
+        }
+        
+        @keyframes sparkleFloat {
+            0% { transform: translateY(100vh) rotate(0deg); }
+            100% { transform: translateY(-100vh) rotate(360deg); }
+        }
+        
+        @keyframes floatingElements {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-10px); }
         }
 
         .container {
-            background-color: rgba(255, 255, 255, 0.95); /* Slightly more opaque for readability */
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.98) 0%, rgba(255, 192, 203, 0.1) 100%);
             padding: 35px 40px;
-            border-radius: 25px; /* More rounded corners */
-            box-shadow: 0 10px 30px rgba(255, 105, 180, 0.2); /* Pinkish shadow for cuteness */
+            border-radius: 30px;
+            border: 3px solid rgba(255, 105, 180, 0.3);
+            box-shadow: 
+                0 15px 35px rgba(255, 105, 180, 0.3),
+                0 5px 15px rgba(255, 20, 147, 0.2),
+                inset 0 1px 0 rgba(255, 255, 255, 0.8);
             width: 100%;
-            max-width: 550px; /* Slightly narrower for a cozier feel */
+            max-width: 600px;
             text-align: center;
             transition: transform 0.3s ease, box-shadow 0.3s ease;
-            position: relative; /* For pseudo-elements */
-            overflow: hidden; /* Keep decorations contained if they go outside bounds */
-            box-sizing: border-box; /* Ensure padding is included in width calculation */
+            position: relative;
+            overflow: visible;
+            box-sizing: border-box;
+            animation: containerFloat 6s ease-in-out infinite;
+        }
+        
+        @keyframes containerFloat {
+            0%, 100% { transform: translateY(0px) scale(1); }
+            50% { transform: translateY(-5px) scale(1.01); }
         }
 
         /* Simple decorative dots/sparkles using pseudo-elements */
@@ -363,20 +566,57 @@
         }
 
         h1 {
-            color: #e83e8c; /* Hot pink for title */
+            font-family: 'Fredoka One', 'Nunito', sans-serif;
+            color: #ff1493;
             margin-bottom: 25px;
-            font-weight: 600;
-            font-size: 2.2em;
-            animation: subtleTitleGlow 3s ease-in-out infinite alternate; /* Subtle glow animation */
+            font-weight: 400;
+            font-size: 2.8em;
+            text-shadow: 
+                3px 3px 0px #ff69b4,
+                6px 6px 0px #ffc0cb,
+                9px 9px 15px rgba(255, 20, 147, 0.3);
+            animation: powerpuffTitle 4s ease-in-out infinite;
+            transform-origin: center;
+            letter-spacing: 2px;
+        }
+        
+        h1::before {
+            content: '💖 ';
+            animation: heartBeat 2s ease-in-out infinite;
+        }
+        
+        h1::after {
+            content: ' ✨';
+            animation: sparkle 3s ease-in-out infinite;
         }
 
-        @keyframes subtleTitleGlow {
-            0% {
-                text-shadow: 0 0 5px rgba(232, 62, 140, 0.3);
+        @keyframes powerpuffTitle {
+            0%, 100% {
+                transform: scale(1) rotate(0deg);
+                text-shadow: 
+                    3px 3px 0px #ff69b4,
+                    6px 6px 0px #ffc0cb,
+                    9px 9px 15px rgba(255, 20, 147, 0.3);
             }
-            100% {
-                text-shadow: 0 0 15px rgba(232, 62, 140, 0.7);
+            50% {
+                transform: scale(1.05) rotate(1deg);
+                text-shadow: 
+                    4px 4px 0px #ff69b4,
+                    8px 8px 0px #ffc0cb,
+                    12px 12px 20px rgba(255, 20, 147, 0.5);
             }
+        }
+        
+        @keyframes heartBeat {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.2); }
+        }
+        
+        @keyframes sparkle {
+            0%, 100% { transform: rotate(0deg) scale(1); }
+            25% { transform: rotate(90deg) scale(1.1); }
+            50% { transform: rotate(180deg) scale(1); }
+            75% { transform: rotate(270deg) scale(1.1); }
         }
 
         h2 {
@@ -1559,6 +1799,44 @@
                 margin-bottom: 15px;
             }
             
+            /* Extra small screens - Powerpuff Girls Feature Navigation */
+            .powerpuff-feature-nav {
+                padding: 10px;
+                margin: 15px 0;
+                flex-direction: column;
+                align-items: center;
+            }
+            
+            .feature-character {
+                width: 90%;
+                max-width: 200px;
+                margin: 8px 0;
+                padding: 12px;
+                flex-direction: row;
+                justify-content: flex-start;
+                text-align: left;
+            }
+            
+            .character-icon {
+                font-size: 20px;
+                margin-right: 10px;
+                margin-bottom: 0;
+            }
+            
+            .feature-text {
+                display: flex;
+                flex-direction: column;
+            }
+            
+            .feature-name {
+                font-size: 14px;
+                margin-bottom: 2px;
+            }
+            
+            .character-name {
+                font-size: 11px;
+            }
+            
             .container {
                 border-radius: 12px;
                 padding: 15px 10px;
@@ -2084,6 +2362,29 @@
             }
         }
 
+        /* Special analysis type styles */
+        .detailed-report {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            border: 2px solid #00bcd4;
+            box-shadow: 0 0 20px rgba(0, 188, 212, 0.3);
+        }
+        
+        .detailed-report h2 {
+            color: #00bcd4;
+            text-shadow: 0 0 10px rgba(0, 188, 212, 0.5);
+        }
+        
+        .emotion-analysis {
+            background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+            border: 2px solid #ff6b9d;
+            box-shadow: 0 0 20px rgba(255, 107, 157, 0.3);
+        }
+        
+        .emotion-analysis h2 {
+            color: #ff6b9d;
+            text-shadow: 0 0 10px rgba(255, 107, 157, 0.5);
+        }
+
         /* Notification animations */
         @keyframes slideInRight {
             from {
@@ -2146,11 +2447,43 @@
         
         <h1>🔍 AI 面相分析器 👤</h1>
         
-        <!-- Feature Selection Tabs -->
-        <div class="feature-tabs">
-            <button class="tab-btn active" data-feature="analysis">🔍 面相分析</button>
-            <button class="tab-btn" data-feature="fortune">🔮 運勢預測</button>
-            <button class="tab-btn" data-feature="matching">💑 配對分析</button>
+        <!-- Powerpuff Girls Style Feature Selection -->
+        <div class="powerpuff-feature-nav">
+            <div class="feature-character blossom active" data-feature="analysis">
+                <div class="character-icon">🌸</div>
+                <div class="feature-text">
+                    <div class="feature-name">面相分析</div>
+                    <div class="character-name">Blossom</div>
+                </div>
+            </div>
+            <div class="feature-character bubbles" data-feature="emotion">
+                <div class="character-icon">🎭</div>
+                <div class="feature-text">
+                    <div class="feature-name">情緒識別</div>
+                    <div class="character-name">Bubbles</div>
+                </div>
+            </div>
+            <div class="feature-character buttercup" data-feature="detailed">
+                <div class="character-icon">📊</div>
+                <div class="feature-text">
+                    <div class="feature-name">詳細報告</div>
+                    <div class="character-name">Buttercup</div>
+                </div>
+            </div>
+            <div class="feature-character professor" data-feature="fortune">
+                <div class="character-icon">🔮</div>
+                <div class="feature-text">
+                    <div class="feature-name">運勢預測</div>
+                    <div class="character-name">Professor</div>
+                </div>
+            </div>
+            <div class="feature-character mojo" data-feature="matching">
+                <div class="character-icon">💑</div>
+                <div class="feature-text">
+                    <div class="feature-name">配對分析</div>
+                    <div class="character-name">Mojo</div>
+                </div>
+            </div>
         </div>
         
         <!-- Introduction Section -->
@@ -3118,39 +3451,59 @@
             }
         }
         
-        // Feature tabs functionality
+        // Powerpuff Girls Feature Navigation functionality
         function initFeatureTabs() {
-            const tabBtns = document.querySelectorAll('.tab-btn');
+            const featureNav = document.querySelector('.powerpuff-feature-nav');
+            const featureCharacters = document.querySelectorAll('.feature-character');
             const uploadForm = document.getElementById('uploadForm');
             const matchingSection = document.getElementById('matchingSection');
             const introSection = document.getElementById('introSection');
             
-            tabBtns.forEach(btn => {
-                btn.addEventListener('click', () => {
-                    // Remove active class from all tabs
-                    tabBtns.forEach(tab => tab.classList.remove('active'));
-                    // Add active class to clicked tab
-                    btn.classList.add('active');
+            featureCharacters.forEach(character => {
+                character.addEventListener('click', () => {
+                    // Remove active class from all characters
+                    featureCharacters.forEach(char => char.classList.remove('active'));
+                    // Add active class to clicked character
+                    character.classList.add('active');
                     
-                    const feature = btn.dataset.feature;
+                    const feature = character.dataset.feature;
+                    
+                    // Add character-specific animation
+                    character.style.animation = 'powerpuffActivate 0.6s ease-out';
+                    setTimeout(() => {
+                        character.style.animation = '';
+                    }, 600);
                     
                     // Hide all sections first
                     uploadForm.style.display = 'none';
                     matchingSection.style.display = 'none';
                     
-                    // Show appropriate section
+                    // Show appropriate section based on feature
                     switch(feature) {
                         case 'analysis':
                             uploadForm.style.display = 'block';
                             introSection.style.display = 'block';
+                            showNotification('🌸 Blossom 的面相分析模式已啟動！', 'success');
+                            break;
+                        case 'emotion':
+                            uploadForm.style.display = 'block';
+                            introSection.style.display = 'block';
+                            showNotification('🎭 Bubbles 的情緒識別模式已啟動！', 'info');
+                            break;
+                        case 'detailed':
+                            uploadForm.style.display = 'block';
+                            introSection.style.display = 'block';
+                            showNotification('📊 Buttercup 的詳細報告模式已啟動！', 'warning');
                             break;
                         case 'fortune':
                             uploadForm.style.display = 'block';
                             introSection.style.display = 'block';
+                            showNotification('🔮 Professor 的運勢預測模式已啟動！', 'info');
                             break;
                         case 'matching':
                             matchingSection.style.display = 'block';
                             introSection.style.display = 'none';
+                            showNotification('💑 Mojo 的配對分析模式已啟動！', 'success');
                             break;
                     }
                     
@@ -3158,7 +3511,54 @@
                     resetAnalysis();
                 });
             });
+            
+            // Activate the first feature by default
+            if (featureCharacters.length > 0) {
+                featureCharacters[0].click();
+            }
+
+            // Horizontal scroll on mouse hover for feature navigation
+            if (featureNav) {
+                console.log('Feature nav found, adding mousemove listener.');
+                featureNav.addEventListener('mousemove', (e) => {
+                    console.log('Mousemove event triggered');
+                    const navRect = featureNav.getBoundingClientRect();
+                    const mouseX = e.clientX - navRect.left;
+                    const navWidth = navRect.width;
+                    const scrollWidth = featureNav.scrollWidth;
+                    console.log(`navRect: ${JSON.stringify(navRect)}, mouseX: ${mouseX}, navWidth: ${navWidth}, scrollWidth: ${scrollWidth}`);
+
+                    if (scrollWidth > navWidth) { // Only scroll if content overflows
+                        console.log('Content overflows, calculating scroll.');
+                        // Determine the scroll speed based on mouse position (closer to edge = faster scroll)
+                        let scrollSpeed = 0;
+                        const edgeThreshold = navWidth * 0.15; // 15% of the nav width from each edge
+                        console.log(`edgeThreshold: ${edgeThreshold}`);
+
+                        if (mouseX < edgeThreshold) { // Mouse is near the left edge
+                            scrollSpeed = - (1 - (mouseX / edgeThreshold)) * 15; // Scroll left
+                            console.log(`Scrolling left, speed: ${scrollSpeed}`);
+                        } else if (mouseX > navWidth - edgeThreshold) { // Mouse is near the right edge
+                            scrollSpeed = (1 - ((navWidth - mouseX) / edgeThreshold)) * 15; // Scroll right
+                            console.log(`Scrolling right, speed: ${scrollSpeed}`);
+                        } else {
+                            console.log('Mouse not near edges, no scroll.');
+                        }
+                        
+                        if(scrollSpeed !== 0) {
+                            featureNav.scrollLeft += scrollSpeed;
+                            console.log(`New scrollLeft: ${featureNav.scrollLeft}`);
+                        }
+                    } else {
+                        console.log('Content does not overflow, no scroll needed.');
+                    }
+                });
+            } else {
+                console.error('Feature nav element (.powerpuff-feature-nav) not found.');
+            }
         }
+        
+    
         
         // Matching analysis functionality
         function initMatchingAnalysis() {
@@ -3452,6 +3852,32 @@
         
         async function submitFormData(formData) {
             const imageFile = document.getElementById('imageUpload').files[0];
+            
+            // Get current selected feature
+            const activeFeature = document.querySelector('.feature-character.active');
+            const currentFeature = activeFeature ? activeFeature.dataset.feature : 'analysis';
+            
+            // Add analysis type based on selected feature
+            switch(currentFeature) {
+                case 'emotion':
+                    formData.append('analysisType', 'emotion');
+                    formData.append('stylePrompt', '請進行詳細的情緒識別分析，包括面部表情解讀、情緒狀態評估、心理狀態分析和情緒管理建議');
+                    break;
+                case 'detailed':
+                    formData.append('analysisType', 'detailed');
+                    formData.append('stylePrompt', '請提供詳細的面相分析報告，包括五官特徵分析、性格特質、天賦才能、人際關係、事業發展建議和注意事項等全面分析');
+                    break;
+                case 'fortune':
+                    formData.append('analysisType', 'fortune');
+                    formData.append('stylePrompt', '請進行運勢預測分析，包括近期運勢、事業運、感情運、財運和健康運等方面的預測和建議');
+                    break;
+                case 'matching':
+                    // Matching is handled separately
+                    break;
+                default:
+                    formData.append('analysisType', 'analysis');
+                    break;
+            }
 
             loadingIndicator.style.display = 'block';
             submitBtn.disabled = true;
@@ -3894,9 +4320,13 @@
                     item.addEventListener('click', () => {
                         const featureName = item.querySelector('span:last-child').textContent;
                         
-                        // Special handler for fortune prediction
+                        // Special handlers for different features
                         if (featureName === '運勢預測') {
                             handleFortunePredict();
+                        } else if (featureName === '詳細報告') {
+                            handleDetailedReport();
+                        } else if (featureName === '情緒識別') {
+                            handleEmotionRecognition();
                         } else {
                             showNotification(`${featureName} 功能即將推出，敬請期待！🚀`, 'info');
                         }
@@ -3986,6 +4416,188 @@
             } catch (error) {
                 console.error('Fortune prediction error:', error);
                 showError(`運勢預測失敗：${error.message}`);
+            } finally {
+                // Reset loading state
+                loadingIndicator.style.display = 'none';
+                submitBtn.disabled = false;
+                submitBtn.textContent = originalText;
+                submitBtn.classList.remove('pulse-loading');
+                updateProgress(0);
+            }
+        }
+        
+        // Detailed report function
+        async function handleDetailedReport() {
+            const imageFile = document.getElementById('imageUpload').files[0];
+            
+            if (!imageFile) {
+                showNotification('請先上傳一張照片才能生成詳細報告！📊', 'warning');
+                return;
+            }
+            
+            // Show loading state
+            loadingIndicator.style.display = 'block';
+            const originalText = submitBtn.textContent;
+            submitBtn.disabled = true;
+            submitBtn.textContent = '📊 生成詳細報告中...';
+            submitBtn.classList.add('pulse-loading');
+            
+            // Clear previous results
+            aiResponseDiv.textContent = '';
+            aiResponseContainer.style.display = 'none';
+            hideError();
+            
+            // Start progress simulation
+            simulateProgress();
+            
+            try {
+                const formData = new FormData();
+                formData.append('image', imageFile);
+                formData.append('analysisType', 'detailed'); // Special flag for detailed report
+                formData.append('style', 'professional');
+                formData.append('language', 'zh');
+                formData.append('stylePrompt', '請提供詳細的面相分析報告，包括五官特徵分析、性格特質、天賦才能、人際關係、事業發展建議和注意事項等全面分析');
+                
+                const response = await fetch('/upload', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                if (!response.ok) {
+                    const errorData = await response.json().catch(() => ({ error: '伺服器錯誤，無法解析回應。' }));
+                    throw new Error(errorData.error || '詳細報告生成失敗，請稍後再試');
+                }
+                
+                const result = await response.json();
+                
+                // Display detailed report results
+                const reportComment = result.aiComment || '詳細分析報告生成中...';
+                currentComment = `📊 詳細報告：${reportComment}`; // Store for sharing
+                
+                // Show results with special report styling
+                aiResponseContainer.classList.add('detailed-report');
+                aiResponseContainer.style.display = 'block';
+                const responseHeader = aiResponseContainer.querySelector('h2');
+                responseHeader.textContent = '📊 AI 詳細面相分析報告：';
+                
+                typewriterEffect(aiResponseDiv, reportComment);
+                
+                // Show action buttons
+                document.getElementById('retryBtn').style.display = 'inline-block';
+                document.getElementById('tryAgainBtn').style.display = 'inline-block';
+                
+                // Show rating and share sections
+                setTimeout(() => {
+                    document.getElementById('ratingSection').style.display = 'block';
+                    document.getElementById('shareSection').style.display = 'block';
+                }, 2000);
+                
+                // Add to history
+                if (historyManager) {
+                    historyManager.addAnalysis({
+                        type: 'detailed',
+                        image: imageFile,
+                        result: reportComment,
+                        timestamp: new Date().toISOString()
+                    });
+                }
+                
+                showNotification('📊 詳細報告生成完成！', 'success');
+                
+            } catch (error) {
+                console.error('Detailed report error:', error);
+                showError(`詳細報告生成失敗：${error.message}`);
+            } finally {
+                // Reset loading state
+                loadingIndicator.style.display = 'none';
+                submitBtn.disabled = false;
+                submitBtn.textContent = originalText;
+                submitBtn.classList.remove('pulse-loading');
+                updateProgress(0);
+            }
+        }
+        
+        // Emotion recognition function
+        async function handleEmotionRecognition() {
+            const imageFile = document.getElementById('imageUpload').files[0];
+            
+            if (!imageFile) {
+                showNotification('請先上傳一張照片才能進行情緒識別！🎭', 'warning');
+                return;
+            }
+            
+            // Show loading state
+            loadingIndicator.style.display = 'block';
+            const originalText = submitBtn.textContent;
+            submitBtn.disabled = true;
+            submitBtn.textContent = '🎭 情緒識別中...';
+            submitBtn.classList.add('pulse-loading');
+            
+            // Clear previous results
+            aiResponseDiv.textContent = '';
+            aiResponseContainer.style.display = 'none';
+            hideError();
+            
+            // Start progress simulation
+            simulateProgress();
+            
+            try {
+                const formData = new FormData();
+                formData.append('image', imageFile);
+                formData.append('analysisType', 'emotion'); // Special flag for emotion recognition
+                formData.append('style', 'empathetic');
+                formData.append('language', 'zh');
+                formData.append('stylePrompt', '請根據面部表情和微表情進行情緒識別分析，包括當前情緒狀態、情緒強度、潛在心理狀態和情緒調節建議');
+                
+                const response = await fetch('/upload', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                if (!response.ok) {
+                    const errorData = await response.json().catch(() => ({ error: '伺服器錯誤，無法解析回應。' }));
+                    throw new Error(errorData.error || '情緒識別失敗，請稍後再試');
+                }
+                
+                const result = await response.json();
+                
+                // Display emotion recognition results
+                const emotionComment = result.aiComment || '情緒識別分析中...';
+                currentComment = `🎭 情緒識別：${emotionComment}`; // Store for sharing
+                
+                // Show results with special emotion styling
+                aiResponseContainer.classList.add('emotion-analysis');
+                aiResponseContainer.style.display = 'block';
+                const responseHeader = aiResponseContainer.querySelector('h2');
+                responseHeader.textContent = '🎭 AI 情緒識別分析：';
+                
+                typewriterEffect(aiResponseDiv, emotionComment);
+                
+                // Show action buttons
+                document.getElementById('retryBtn').style.display = 'inline-block';
+                document.getElementById('tryAgainBtn').style.display = 'inline-block';
+                
+                // Show rating and share sections
+                setTimeout(() => {
+                    document.getElementById('ratingSection').style.display = 'block';
+                    document.getElementById('shareSection').style.display = 'block';
+                }, 2000);
+                
+                // Add to history
+                if (historyManager) {
+                    historyManager.addAnalysis({
+                        type: 'emotion',
+                        image: imageFile,
+                        result: emotionComment,
+                        timestamp: new Date().toISOString()
+                    });
+                }
+                
+                showNotification('🎭 情緒識別完成！', 'success');
+                
+            } catch (error) {
+                console.error('Emotion recognition error:', error);
+                showError(`情緒識別失敗：${error.message}`);
             } finally {
                 // Reset loading state
                 loadingIndicator.style.display = 'none';
